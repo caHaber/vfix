@@ -2,8 +2,9 @@
 	import { variableFont } from '@vfir/svelte';
 	import { easeOutCubic } from '@vfir/core';
 	import KineticText from './KineticText.svelte';
+	import PromptStudio from './PromptStudio.svelte';
 
-	type Tab = 'sliders' | 'kinetic';
+	type Tab = 'sliders' | 'kinetic' | 'prompt-studio';
 	let activeTab = $state<Tab>('sliders');
 
 	const font = variableFont({
@@ -52,6 +53,10 @@
 				class:active={activeTab === 'kinetic'}
 				onclick={() => (activeTab = 'kinetic')}
 			>Kinetic</button>
+			<button
+				class:active={activeTab === 'prompt-studio'}
+				onclick={() => (activeTab = 'prompt-studio')}
+			>Prompt Studio</button>
 		</nav>
 	</header>
 
@@ -86,8 +91,10 @@
 				Casey Haber — variable font interpolation renderer
 			</p>
 		</main>
-	{:else}
+	{:else if activeTab === 'kinetic'}
 		<KineticText />
+	{:else}
+		<PromptStudio />
 	{/if}
 </div>
 

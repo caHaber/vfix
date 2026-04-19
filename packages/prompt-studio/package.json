@@ -1,0 +1,23 @@
+{
+  "name": "@prompt-studio/core",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "js-tiktoken": "^1.0.18"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  }
+}
