@@ -11,6 +11,7 @@
   "dependencies": {
     "@chenglou/pretext": "^0.0.5",
     "@prompt-studio/core": "workspace:*",
+    "@vfir/cartographer": "workspace:*",
     "@vfir/core": "workspace:*",
     "@vfir/svelte": "workspace:*",
     "svelte": "^5.0.0"
