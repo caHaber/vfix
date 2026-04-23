@@ -3,8 +3,9 @@
 	import { easeOutCubic } from '@vfir/core';
 	import KineticText from './KineticText.svelte';
 	import PromptStudio from './PromptStudio.svelte';
+	import ResponseMap from './ResponseMap.svelte';
 
-	type Tab = 'sliders' | 'kinetic' | 'prompt-studio';
+	type Tab = 'sliders' | 'kinetic' | 'prompt-studio' | 'response-map';
 	let activeTab = $state<Tab>('sliders');
 
 	const font = variableFont({
@@ -57,6 +58,10 @@
 				class:active={activeTab === 'prompt-studio'}
 				onclick={() => (activeTab = 'prompt-studio')}
 			>Prompt Studio</button>
+			<button
+				class:active={activeTab === 'response-map'}
+				onclick={() => (activeTab = 'response-map')}
+			>Response Map</button>
 		</nav>
 	</header>
 
@@ -93,8 +98,10 @@
 		</main>
 	{:else if activeTab === 'kinetic'}
 		<KineticText />
-	{:else}
+	{:else if activeTab === 'prompt-studio'}
 		<PromptStudio />
+	{:else}
+		<ResponseMap />
 	{/if}
 </div>
 

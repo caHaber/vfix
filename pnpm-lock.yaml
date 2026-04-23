@@ -30,6 +30,9 @@ importers:
       '@prompt-studio/core':
         specifier: workspace:*
         version: link:../../packages/prompt-studio
+      '@vfir/cartographer':
+        specifier: workspace:*
+        version: link:../../packages/cartographer
       '@vfir/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -49,6 +52,16 @@ importers:
       vite:
         specifier: ^6.0.0
         version: 6.4.2(lightningcss@1.32.0)
+
+  packages/cartographer:
+    dependencies:
+      '@vfir/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.10)(typescript@6.0.3)
 
   packages/core:
     dependencies:
