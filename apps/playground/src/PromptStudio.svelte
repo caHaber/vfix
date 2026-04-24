@@ -2,6 +2,12 @@
 	import { registry, analyze, tokenDiff, MODEL_PRICING } from '@prompt-studio/core';
 	import type { Analysis, TokenDiff, TokenizerID, ModelID } from '@prompt-studio/core';
 	import { onMount } from 'svelte';
+	import { consumePendingPrompt, promptBus } from '$lib/prompt-bus.svelte';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as Select from '$lib/components/ui/select';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { Button } from '$lib/components/ui/button';
+	import { Label } from '$lib/components/ui/label';
 
 	type SubTab = 'analyze' | 'diff';
 	let subTab = $state<SubTab>('analyze');
@@ -28,10 +34,21 @@
 		runAnalysis();
 	});
 
+	// Pick up prompts sent from Response Map after mount or tab switch.
+	$effect(() => {
+		if (promptBus.pendingPrompt !== null) {
+			const incoming = consumePendingPrompt();
+			if (incoming !== null) {
+				text = incoming;
+				subTab = 'analyze';
+				if (!loading) runAnalysis();
+			}
+		}
+	});
+
 	async function switchTokenizer(id: TokenizerID) {
 		loading = true;
 		tokenizerId = id;
-		// Update model to match tokenizer
 		const matchingModel = availableModels.find(
 			(m) => MODEL_PRICING[m].tokenizer === id,
 		);
@@ -67,9 +84,8 @@
 		runAnalysis();
 	}
 
-	function onModelChange(e: Event) {
-		modelId = (e.target as HTMLSelectElement).value as ModelID;
-		// Sync tokenizer from model
+	function selectModel(id: string) {
+		modelId = id as ModelID;
 		const pricing = MODEL_PRICING[modelId];
 		if (pricing && pricing.tokenizer !== tokenizerId) {
 			switchTokenizer(pricing.tokenizer);
@@ -88,73 +104,81 @@
 		return n.toLocaleString();
 	}
 
-	// --- Token color cycling for boundary view ---
 	const TOKEN_COLORS = [
-		'rgba(124, 106, 247, 0.25)',
-		'rgba(247, 106, 124, 0.25)',
-		'rgba(106, 247, 180, 0.25)',
-		'rgba(247, 220, 106, 0.25)',
-		'rgba(106, 200, 247, 0.25)',
-		'rgba(247, 150, 106, 0.25)',
+		'rgba(107, 155, 210, 0.18)',
+		'rgba(125, 185, 220, 0.18)',
+		'rgba(155, 200, 225, 0.22)',
+		'rgba(180, 210, 235, 0.22)',
+		'rgba(140, 175, 215, 0.18)',
+		'rgba(100, 140, 200, 0.15)',
 	];
 </script>
 
-<div class="ps-container">
+<div class="flex flex-col min-h-[calc(100vh-57px)]">
 	<!-- Toolbar -->
-	<div class="ps-toolbar">
-		<div class="ps-tabs">
-			<button class:active={subTab === 'analyze'} onclick={() => { subTab = 'analyze'; runAnalysis(); }}>
-				Analyze
-			</button>
-			<button class:active={subTab === 'diff'} onclick={() => { subTab = 'diff'; runAnalysis(); }}>
-				Diff
-			</button>
-		</div>
+	<div class="flex justify-between items-center gap-4 px-6 py-3 border-b border-border flex-shrink-0 flex-wrap">
+		<Tabs.Root value={subTab} onValueChange={(val) => { subTab = val as SubTab; runAnalysis(); }}>
+			<Tabs.List>
+				<Tabs.Trigger value="analyze">Analyze</Tabs.Trigger>
+				<Tabs.Trigger value="diff">Diff</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
 
-		<div class="ps-controls">
-			<label>
-				<span class="ctrl-label">Model</span>
-				<select value={modelId} onchange={onModelChange}>
-					{#each availableModels as m}
-						<option value={m}>{m}</option>
-					{/each}
-				</select>
-			</label>
-			<label>
-				<span class="ctrl-label">Tokenizer</span>
-				<select value={tokenizerId} onchange={(e) => switchTokenizer((e.target as HTMLSelectElement).value as TokenizerID)}>
-					{#each availableTokenizers as t}
-						<option value={t}>{t}</option>
-					{/each}
-				</select>
-			</label>
+		<div class="flex gap-3 items-center">
+			<div class="flex items-center gap-2">
+				<Label for="model-select" class="text-xs uppercase text-muted-foreground font-mono">Model</Label>
+				<Select.Root type="single" value={modelId} onValueChange={selectModel}>
+					<Select.Trigger id="model-select" class="w-40">
+						{modelId}
+					</Select.Trigger>
+					<Select.Content>
+						{#each availableModels as m}
+							<Select.Item value={m}>{m}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			</div>
+			<div class="flex items-center gap-2">
+				<Label for="tokenizer-select" class="text-xs uppercase text-muted-foreground font-mono">Tokenizer</Label>
+				<Select.Root type="single" value={tokenizerId} onValueChange={(val) => switchTokenizer(val as TokenizerID)}>
+					<Select.Trigger id="tokenizer-select" class="w-40">
+						{tokenizerId}
+					</Select.Trigger>
+					<Select.Content>
+						{#each availableTokenizers as t}
+							<Select.Item value={t}>{t}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			</div>
 		</div>
 	</div>
 
 	{#if loading}
-		<div class="ps-loading">Loading tokenizer...</div>
+		<div class="flex items-center justify-center flex-1 text-muted-foreground font-mono text-sm">
+			Loading tokenizer...
+		</div>
 	{:else if subTab === 'analyze'}
 		<!-- ANALYZE VIEW -->
-		<div class="ps-analyze">
-			<div class="ps-editor-col">
-				<textarea
-					class="ps-textarea"
+		<div class="grid grid-cols-[1fr_320px] flex-1 overflow-hidden">
+			<div class="flex flex-col overflow-hidden">
+				<Textarea
 					value={text}
 					oninput={onTextInput}
 					placeholder="Paste your prompt here..."
+					class="flex-1 min-h-[200px] font-mono text-sm leading-relaxed rounded-none border-0 resize-none p-6"
 					spellcheck="false"
-				></textarea>
+				/>
 
-				<!-- Token boundary overlay -->
 				{#if showBoundaries && analysis && analysis.tokens.length > 0}
-					<div class="ps-boundaries">
-						<button class="toggle-boundaries" onclick={() => (showBoundaries = !showBoundaries)}>
+					<div class="border-t border-border p-3 max-h-[300px] overflow-y-auto">
+						<Button variant="outline" size="sm" class="mb-2" onclick={() => (showBoundaries = false)}>
 							Hide tokens
-						</button>
-						<div class="ps-token-vis">
+						</Button>
+						<div class="font-mono text-sm leading-[1.8] break-all">
 							{#each analysis.tokens as token, i}
 								<span
-									class="ps-token"
+									class="rounded-sm py-[0.1rem] whitespace-pre-wrap hover:outline hover:outline-1 hover:outline-primary/60"
 									style="background: {TOKEN_COLORS[i % TOKEN_COLORS.length]}"
 									title="Token #{token.id}: {JSON.stringify(token.text)}"
 								>{token.text}</span>
@@ -162,48 +186,48 @@
 						</div>
 					</div>
 				{:else if !showBoundaries}
-					<button class="toggle-boundaries" onclick={() => (showBoundaries = true)}>
-						Show token boundaries
-					</button>
+					<div class="border-t border-border p-3">
+						<Button variant="outline" size="sm" onclick={() => (showBoundaries = true)}>
+							Show token boundaries
+						</Button>
+					</div>
 				{/if}
 			</div>
 
 			<!-- Stats panel -->
 			{#if analysis}
-				<div class="ps-stats">
-					<div class="stat-group">
-						<h3>Tokens</h3>
-						<div class="stat-big">{formatNumber(analysis.tokenCount)}</div>
-						<div class="stat-sub">{formatNumber(analysis.characterCount)} chars</div>
-						<div class="stat-sub">{analysis.density.toFixed(3)} tokens/char</div>
+				<div class="border-l border-border p-5 overflow-y-auto flex flex-col gap-5">
+					<div>
+						<h3 class="text-xs uppercase tracking-wider font-mono text-muted-foreground mb-2">Tokens</h3>
+						<div class="text-3xl font-bold text-primary font-mono leading-none mb-1">{formatNumber(analysis.tokenCount)}</div>
+						<div class="text-xs text-muted-foreground font-mono">{formatNumber(analysis.characterCount)} chars</div>
+						<div class="text-xs text-muted-foreground font-mono">{analysis.density.toFixed(3)} tokens/char</div>
 					</div>
 
 					{#if analysis.estimatedCost}
-						<div class="stat-group">
-							<h3>Estimated Cost</h3>
-							<div class="stat-row">
+						<div>
+							<h3 class="text-xs uppercase tracking-wider font-mono text-muted-foreground mb-2">Estimated Cost</h3>
+							<div class="flex justify-between text-sm text-muted-foreground font-mono py-[0.15rem]">
 								<span>Input</span>
-								<span class="stat-val">{formatCost(analysis.estimatedCost.input)}</span>
+								<span class="text-foreground">{formatCost(analysis.estimatedCost.input)}</span>
 							</div>
-							<div class="stat-row">
+							<div class="flex justify-between text-sm text-muted-foreground font-mono py-[0.15rem]">
 								<span>Output (est.)</span>
-								<span class="stat-val">{formatCost(analysis.estimatedCost.output)}</span>
+								<span class="text-foreground">{formatCost(analysis.estimatedCost.output)}</span>
 							</div>
 						</div>
 					{/if}
 
 					{#if analysis.contextWindow}
-						<div class="stat-group">
-							<h3>Context Window</h3>
-							<div class="ctx-bar-wrap">
+						<div>
+							<h3 class="text-xs uppercase tracking-wider font-mono text-muted-foreground mb-2">Context Window</h3>
+							<div class="h-1.5 bg-muted rounded-sm overflow-hidden mb-2">
 								<div
-									class="ctx-bar"
-									class:warn={analysis.contextWindow.percentage > 80}
-									class:error={analysis.contextWindow.percentage > 100}
+									class="h-full rounded-sm transition-[width] duration-200 {analysis.contextWindow.percentage > 100 ? 'bg-destructive' : analysis.contextWindow.percentage > 80 ? 'bg-yellow-500' : 'bg-primary'}"
 									style="width: {Math.min(analysis.contextWindow.percentage, 100)}%"
 								></div>
 							</div>
-							<div class="stat-sub">
+							<div class="text-xs text-muted-foreground font-mono">
 								{formatNumber(analysis.contextWindow.used)} / {formatNumber(analysis.contextWindow.total)}
 								({analysis.contextWindow.percentage.toFixed(1)}%)
 							</div>
@@ -211,21 +235,21 @@
 					{/if}
 
 					{#if analysis.warnings.length > 0}
-						<div class="stat-group">
-							<h3>Warnings</h3>
+						<div>
+							<h3 class="text-xs uppercase tracking-wider font-mono text-muted-foreground mb-2">Warnings</h3>
 							{#each analysis.warnings as w}
-								<div class="warning">{w.message}</div>
+								<div class="text-xs text-yellow-500 font-mono py-1">{w.message}</div>
 							{/each}
 						</div>
 					{/if}
 
 					{#if analysis.sections.length > 1}
-						<div class="stat-group">
-							<h3>Sections</h3>
+						<div>
+							<h3 class="text-xs uppercase tracking-wider font-mono text-muted-foreground mb-2">Sections</h3>
 							{#each analysis.sections as section}
-								<div class="stat-row">
-									<span class="section-label">{section.label}</span>
-									<span class="stat-val">{formatNumber(section.tokenCount)}</span>
+								<div class="flex justify-between text-sm text-muted-foreground font-mono py-[0.15rem]">
+									<span class="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">{section.label}</span>
+									<span class="text-foreground">{formatNumber(section.tokenCount)}</span>
 								</div>
 							{/each}
 						</div>
@@ -233,50 +257,49 @@
 				</div>
 			{/if}
 		</div>
-
 	{:else}
 		<!-- DIFF VIEW -->
-		<div class="ps-diff-view">
-			<div class="ps-diff-editors">
-				<div class="ps-diff-pane">
-					<div class="pane-label">Before</div>
-					<textarea
-						class="ps-textarea"
+		<div class="flex flex-col flex-1 overflow-hidden">
+			<div class="grid grid-cols-2 flex-1 min-h-0">
+				<div class="flex flex-col overflow-hidden border-r border-border">
+					<div class="text-xs text-muted-foreground uppercase font-mono tracking-wider px-6 py-2 border-b border-border">Before</div>
+					<Textarea
 						value={diffBefore}
 						oninput={onDiffBeforeInput}
 						placeholder="Original prompt..."
+						class="flex-1 min-h-[200px] font-mono text-sm leading-relaxed rounded-none border-0 resize-none p-6"
 						spellcheck="false"
-					></textarea>
+					/>
 				</div>
-				<div class="ps-diff-pane">
-					<div class="pane-label">After</div>
-					<textarea
-						class="ps-textarea"
+				<div class="flex flex-col overflow-hidden">
+					<div class="text-xs text-muted-foreground uppercase font-mono tracking-wider px-6 py-2 border-b border-border">After</div>
+					<Textarea
 						value={diffAfter}
 						oninput={onDiffAfterInput}
 						placeholder="Modified prompt..."
+						class="flex-1 min-h-[200px] font-mono text-sm leading-relaxed rounded-none border-0 resize-none p-6"
 						spellcheck="false"
-					></textarea>
+					/>
 				</div>
 			</div>
 
 			{#if diff}
-				<div class="ps-diff-result">
-					<div class="diff-header">
-						<span class="diff-delta" class:positive={diff.tokenDelta > 0} class:negative={diff.tokenDelta < 0}>
+				<div class="border-t border-border px-6 py-4 max-h-[300px] overflow-y-auto flex-shrink-0">
+					<div class="flex gap-3 items-baseline mb-3">
+						<span class="font-mono text-base font-bold {diff.tokenDelta > 0 ? 'text-destructive' : diff.tokenDelta < 0 ? 'text-green-500' : 'text-muted-foreground'}">
 							{diff.tokenDelta > 0 ? '+' : ''}{diff.tokenDelta} tokens
 						</span>
 						{#if diff.costDelta !== undefined}
-							<span class="diff-cost">
+							<span class="font-mono text-sm text-muted-foreground">
 								({diff.costDelta > 0 ? '+' : ''}{formatCost(Math.abs(diff.costDelta))}/call)
 							</span>
 						{/if}
 					</div>
-					<div class="diff-tokens">
+					<div class="font-mono text-sm leading-[1.8] break-all">
 						{#each diff.ops as op}
 							{#each op.tokens as token}
 								<span
-									class="diff-token {op.type}"
+									class="py-[0.1rem] rounded-sm whitespace-pre-wrap {op.type === 'insert' ? 'bg-green-500/15 text-green-500' : op.type === 'delete' ? 'bg-destructive/15 text-destructive line-through' : 'text-muted-foreground'}"
 									title="Token #{token.id}"
 								>{token.text}</span>
 							{/each}
@@ -322,347 +345,3 @@ const SAMPLE_AFTER = `You are an expert code reviewer specializing in TypeScript
 
 Be concise. Use bullet points. Show corrected code when applicable.`;
 </script>
-
-<style>
-	.ps-container {
-		display: flex;
-		flex-direction: column;
-		min-height: calc(100vh - 57px);
-		padding: 0;
-	}
-
-	.ps-toolbar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.75rem 1.5rem;
-		border-bottom: 1px solid #1e1e1e;
-		flex-shrink: 0;
-	}
-
-	.ps-tabs {
-		display: flex;
-		gap: 0.25rem;
-		background: #1a1a1a;
-		border-radius: 6px;
-		padding: 0.2rem;
-	}
-
-	.ps-tabs button {
-		background: none;
-		border: none;
-		color: #666;
-		font-size: 0.8rem;
-		padding: 0.3rem 0.75rem;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-	}
-
-	.ps-tabs button:hover {
-		color: #ccc;
-	}
-
-	.ps-tabs button.active {
-		background: #2a2a2a;
-		color: #f0f0f0;
-	}
-
-	.ps-controls {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-	}
-
-	.ps-controls label {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-	}
-
-	.ctrl-label {
-		font-size: 0.7rem;
-		color: #555;
-		text-transform: uppercase;
-		font-family: monospace;
-		letter-spacing: 0.05em;
-	}
-
-	.ps-controls select {
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
-		color: #ccc;
-		font-size: 0.8rem;
-		padding: 0.3rem 0.5rem;
-		border-radius: 4px;
-		font-family: monospace;
-	}
-
-	.ps-loading {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 1;
-		color: #555;
-		font-family: monospace;
-		font-size: 0.85rem;
-	}
-
-	/* --- Analyze View --- */
-	.ps-analyze {
-		display: grid;
-		grid-template-columns: 1fr 280px;
-		flex: 1;
-		overflow: hidden;
-	}
-
-	.ps-editor-col {
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.ps-textarea {
-		flex: 1;
-		min-height: 200px;
-		background: #111;
-		border: none;
-		color: #e0e0e0;
-		font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', monospace;
-		font-size: 0.85rem;
-		line-height: 1.6;
-		padding: 1.25rem 1.5rem;
-		resize: none;
-		outline: none;
-		tab-size: 2;
-	}
-
-	.ps-textarea::placeholder {
-		color: #333;
-	}
-
-	.ps-boundaries {
-		border-top: 1px solid #1e1e1e;
-		padding: 0.75rem 1.5rem;
-		max-height: 300px;
-		overflow-y: auto;
-	}
-
-	.toggle-boundaries {
-		background: none;
-		border: 1px solid #2a2a2a;
-		color: #555;
-		font-size: 0.7rem;
-		padding: 0.25rem 0.6rem;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-		margin-bottom: 0.5rem;
-	}
-
-	.toggle-boundaries:hover {
-		color: #999;
-		border-color: #444;
-	}
-
-	.ps-token-vis {
-		font-family: 'Berkeley Mono', 'JetBrains Mono', monospace;
-		font-size: 0.8rem;
-		line-height: 1.8;
-		word-break: break-all;
-	}
-
-	.ps-token {
-		border-radius: 2px;
-		padding: 0.1rem 0;
-		cursor: default;
-		white-space: pre-wrap;
-	}
-
-	.ps-token:hover {
-		outline: 1px solid rgba(124, 106, 247, 0.6);
-	}
-
-	/* --- Stats Panel --- */
-	.ps-stats {
-		border-left: 1px solid #1e1e1e;
-		padding: 1.25rem;
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
-	}
-
-	.stat-group h3 {
-		font-size: 0.7rem;
-		color: #555;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		font-family: monospace;
-		margin: 0 0 0.5rem;
-	}
-
-	.stat-big {
-		font-size: 2rem;
-		font-weight: 700;
-		color: #7c6af7;
-		font-family: monospace;
-		line-height: 1;
-		margin-bottom: 0.25rem;
-	}
-
-	.stat-sub {
-		font-size: 0.75rem;
-		color: #555;
-		font-family: monospace;
-	}
-
-	.stat-row {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.8rem;
-		color: #888;
-		font-family: monospace;
-		padding: 0.15rem 0;
-	}
-
-	.stat-val {
-		color: #ccc;
-	}
-
-	.section-label {
-		max-width: 150px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.ctx-bar-wrap {
-		height: 6px;
-		background: #1a1a1a;
-		border-radius: 3px;
-		overflow: hidden;
-		margin-bottom: 0.4rem;
-	}
-
-	.ctx-bar {
-		height: 100%;
-		background: #7c6af7;
-		border-radius: 3px;
-		transition: width 0.2s;
-	}
-
-	.ctx-bar.warn {
-		background: #f7a636;
-	}
-
-	.ctx-bar.error {
-		background: #f74a4a;
-	}
-
-	.warning {
-		font-size: 0.75rem;
-		color: #f7a636;
-		font-family: monospace;
-		padding: 0.3rem 0;
-	}
-
-	/* --- Diff View --- */
-	.ps-diff-view {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		overflow: hidden;
-	}
-
-	.ps-diff-editors {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		flex: 1;
-		min-height: 0;
-	}
-
-	.ps-diff-pane {
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.ps-diff-pane:first-child {
-		border-right: 1px solid #1e1e1e;
-	}
-
-	.pane-label {
-		font-size: 0.7rem;
-		color: #555;
-		text-transform: uppercase;
-		font-family: monospace;
-		letter-spacing: 0.1em;
-		padding: 0.5rem 1.5rem;
-		border-bottom: 1px solid #1a1a1a;
-	}
-
-	.ps-diff-result {
-		border-top: 1px solid #1e1e1e;
-		padding: 1rem 1.5rem;
-		max-height: 300px;
-		overflow-y: auto;
-		flex-shrink: 0;
-	}
-
-	.diff-header {
-		display: flex;
-		gap: 0.75rem;
-		align-items: baseline;
-		margin-bottom: 0.75rem;
-	}
-
-	.diff-delta {
-		font-family: monospace;
-		font-size: 1rem;
-		font-weight: 700;
-		color: #888;
-	}
-
-	.diff-delta.positive {
-		color: #f74a4a;
-	}
-
-	.diff-delta.negative {
-		color: #4af77a;
-	}
-
-	.diff-cost {
-		font-family: monospace;
-		font-size: 0.8rem;
-		color: #555;
-	}
-
-	.diff-tokens {
-		font-family: 'Berkeley Mono', 'JetBrains Mono', monospace;
-		font-size: 0.8rem;
-		line-height: 1.8;
-		word-break: break-all;
-	}
-
-	.diff-token {
-		padding: 0.1rem 0;
-		border-radius: 2px;
-		white-space: pre-wrap;
-	}
-
-	.diff-token.equal {
-		color: #888;
-	}
-
-	.diff-token.insert {
-		background: rgba(74, 247, 122, 0.15);
-		color: #4af77a;
-	}
-
-	.diff-token.delete {
-		background: rgba(247, 74, 74, 0.15);
-		color: #f74a4a;
-		text-decoration: line-through;
-	}
-</style>

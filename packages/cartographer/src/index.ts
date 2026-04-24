@@ -1,10 +1,14 @@
-export { Annotator, parseJsonResponse } from './annotator.js';
-export type { AnnotatorOptions } from './annotator.js';
+export { Annotator, parseJsonResponse, normalizeGroups } from './annotator.js';
+export type { AnnotatorOptions, AnnotationEvent } from './annotator.js';
 export { detectMode } from './mode-detector.js';
 export { Measurer } from './measurer.js';
 export type { MeasurerOptions } from './measurer.js';
 export { LayoutEngine } from './layout-engine.js';
 export type { LayoutInput } from './layout-engine.js';
+export { StreamingLayout } from './streaming-layout.js';
+export type { StreamingLayoutOptions } from './streaming-layout.js';
 export { Session } from './session.js';
 export type { SessionOptions } from './session.js';
+export { serializeToPrompt, groupsFromStructure } from './serialize.js';
+export type { SerializeOptions } from './serialize.js';
 export type * from './types.js';

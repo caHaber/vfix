@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { variableFont } from '@vfir/svelte';
 	import { easeOutCubic } from '@vfir/core';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as Card from '$lib/components/ui/card';
+	import { Slider } from '$lib/components/ui/slider';
+	import { Label } from '$lib/components/ui/label';
 	import KineticText from './KineticText.svelte';
 	import PromptStudio from './PromptStudio.svelte';
 	import ResponseMap from './ResponseMap.svelte';
@@ -33,6 +37,12 @@
 		const target = event.target as HTMLInputElement;
 		font.set({ [tag]: parseFloat(target.value) });
 	}
+
+	function handleSliderChange(tag: string, values: number[]) {
+		if (values.length > 0) {
+			font.set({ [tag]: values[0] });
+		}
+	}
 </script>
 
 <svelte:head>
@@ -45,71 +55,73 @@
 <div class="shell">
 	<header>
 		<span class="logo" use:font.apply>vfir</span>
-		<nav>
-			<button
-				class:active={activeTab === 'sliders'}
-				onclick={() => (activeTab = 'sliders')}
-			>Sliders</button>
-			<button
-				class:active={activeTab === 'kinetic'}
-				onclick={() => (activeTab = 'kinetic')}
-			>Kinetic</button>
-			<button
-				class:active={activeTab === 'prompt-studio'}
-				onclick={() => (activeTab = 'prompt-studio')}
-			>Prompt Studio</button>
-			<button
-				class:active={activeTab === 'response-map'}
-				onclick={() => (activeTab = 'response-map')}
-			>Response Map</button>
-		</nav>
 	</header>
 
-	{#if activeTab === 'sliders'}
-		<main>
-			<h1 use:font.apply>Variable Font Playground</h1>
+	<Tabs.Root bind:value={activeTab} class="flex-1 flex flex-col">
+		<Tabs.List class="sticky top-12 z-10 w-full justify-start">
+			<Tabs.Trigger value="sliders">Sliders</Tabs.Trigger>
+			<Tabs.Trigger value="kinetic">Kinetic</Tabs.Trigger>
+			<Tabs.Trigger value="prompt-studio">Prompt Studio</Tabs.Trigger>
+			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
+		</Tabs.List>
 
-			<div class="controls">
-				{#each Object.entries(font.axes) as [tag, value]}
-					{@const range = axisRanges[tag] ?? { min: 0, max: 1, step: 0.01 }}
-					<label>
-						<span class="tag">{tag}</span>
-						<input
-							type="range"
-							min={range.min}
-							max={range.max}
-							step={range.step}
-							value={value}
-							oninput={(e) => handleSlider(tag, e)}
-						/>
-						<span class="value">{typeof value === 'number' ? value.toFixed(2) : ''}</span>
-					</label>
-				{/each}
-			</div>
+		<Tabs.Content value="sliders">
+			<main>
+				<h1 use:font.apply>Variable Font Playground</h1>
 
-			<p use:font.apply class="sample">
-				The quick brown fox jumps over the lazy dog.<br />
-				Pack my box with five dozen liquor jugs.
-			</p>
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Font Axes</Card.Title>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						{#each Object.entries(font.axes) as [tag, value]}
+							{@const range = axisRanges[tag] ?? { min: 0, max: 1, step: 0.01 }}
+							<div class="space-y-2">
+								<div class="flex justify-between items-center">
+									<Label for={tag} class="font-mono text-sm">{tag}</Label>
+									<span class="font-mono text-sm text-muted-foreground">{typeof value === 'number' ? value.toFixed(2) : ''}</span>
+								</div>
+								<Slider
+									id={tag}
+									min={range.min}
+									max={range.max}
+									step={range.step}
+									value={[value]}
+									onValueChange={(values) => handleSliderChange(tag, values)}
+								/>
+							</div>
+						{/each}
+					</Card.Content>
+				</Card.Root>
 
-			<p use:font.apply class="sample-sm">
-				Casey Haber — variable font interpolation renderer
-			</p>
-		</main>
-	{:else if activeTab === 'kinetic'}
-		<KineticText />
-	{:else if activeTab === 'prompt-studio'}
-		<PromptStudio />
-	{:else}
-		<ResponseMap />
-	{/if}
+				<p use:font.apply class="sample">
+					The quick brown fox jumps over the lazy dog.<br />
+					Pack my box with five dozen liquor jugs.
+				</p>
+
+				<p use:font.apply class="sample-sm">
+					Casey Haber — variable font interpolation renderer
+				</p>
+			</main>
+		</Tabs.Content>
+
+		<Tabs.Content value="kinetic">
+			<KineticText />
+		</Tabs.Content>
+
+		<Tabs.Content value="prompt-studio">
+			<PromptStudio />
+		</Tabs.Content>
+
+		<Tabs.Content value="response-map">
+			<ResponseMap onSent={() => (activeTab = 'prompt-studio')} />
+		</Tabs.Content>
+	</Tabs.Root>
 </div>
 
 <style>
 	:global(body) {
 		margin: 0;
-		background: #0f0f0f;
-		color: #f0f0f0;
 		font-family: system-ui, sans-serif;
 	}
 
@@ -122,12 +134,11 @@
 	header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		padding: 0.9rem 1.5rem;
-		border-bottom: 1px solid #1e1e1e;
+		border-bottom: 1px solid var(--color-border);
 		position: sticky;
 		top: 0;
-		background: #0f0f0f;
+		background: var(--color-background);
 		z-index: 10;
 	}
 
@@ -135,36 +146,7 @@
 		font-size: 1.4rem;
 		font-weight: 700;
 		letter-spacing: -0.02em;
-		color: #7c6af7;
-	}
-
-	nav {
-		display: flex;
-		gap: 0.25rem;
-		background: #1a1a1a;
-		border-radius: 8px;
-		padding: 0.25rem;
-	}
-
-	nav button {
-		background: none;
-		border: none;
-		color: #666;
-		font-size: 0.85rem;
-		padding: 0.35rem 0.85rem;
-		border-radius: 6px;
-		cursor: pointer;
-		font-family: system-ui;
-		transition: color 0.15s, background 0.15s;
-	}
-
-	nav button:hover {
-		color: #ccc;
-	}
-
-	nav button.active {
-		background: #2a2a2a;
-		color: #f0f0f0;
+		color: var(--color-primary);
 	}
 
 	main {
@@ -181,40 +163,6 @@
 		line-height: 1.1;
 	}
 
-	.controls {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		margin-bottom: 2.5rem;
-		background: #1a1a1a;
-		border-radius: 8px;
-		padding: 1.25rem;
-	}
-
-	label {
-		display: grid;
-		grid-template-columns: 3rem 1fr 3.5rem;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.tag {
-		font-family: monospace;
-		font-size: 0.85rem;
-		color: #888;
-	}
-
-	.value {
-		font-family: monospace;
-		font-size: 0.85rem;
-		text-align: right;
-		color: #aaa;
-	}
-
-	input[type='range'] {
-		width: 100%;
-		accent-color: #7c6af7;
-	}
 
 	.sample {
 		font-family: 'Recursive', system-ui;
@@ -227,6 +175,6 @@
 		font-family: 'Recursive', system-ui;
 		font-size: clamp(1rem, 2.5vw, 1.5rem);
 		line-height: 1.6;
-		color: #aaa;
+		color: var(--color-muted-foreground);
 	}
 </style>

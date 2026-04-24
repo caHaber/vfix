@@ -42,33 +42,50 @@ export interface DecisionSummary {
 	conditions: string[];
 }
 
+/** A named cluster of blocks that share a groupId */
+export interface Group {
+	id: string;
+	label: string;
+	summary?: string;
+}
+
 /** What the annotator returns */
 export interface ResponseStructure {
 	blocks: ContentBlock[];
 	relationships: BlockRelationship[];
 	decision?: DecisionSummary;
+	groups?: Group[];
 }
 
 /** One block after measurement */
 export interface MeasuredBlock {
 	id: string;
-	/** Rendered width in px at the chosen font size */
+	/** Widest line width in px (pretext measureLineStats.maxLineWidth) */
 	width: number;
-	/** Rendered height in px */
+	/** Total box height = lineCount × lineHeight */
 	height: number;
 	/** Font size this block will render at */
 	fontSize: number;
 	/** Font weight 300–900 */
 	fontWeight: number;
+	/** Per-line advance height used by pretext */
+	lineHeight: number;
+	/** Number of lines after wrapping */
+	lineCount: number;
 }
 
 /** Positioned block ready for rendering */
 export interface PositionedBlock extends MeasuredBlock {
+	/** Top-left x of the circle bounding box */
 	x: number;
+	/** Top-left y of the circle bounding box */
 	y: number;
+	/** Diameter of the rendered circle (streaming/circle layouts only) */
+	diameter?: number;
 	opacity: number;
 	text: string;
 	type: BlockType;
+	groupId?: string;
 }
 
 /** Final layout output */
@@ -76,6 +93,7 @@ export interface LayoutResult {
 	positions: PositionedBlock[];
 	bounds: { width: number; height: number };
 	mode: LayoutMode;
+	groups?: Group[];
 }
 
 /** What the playground passes in */
