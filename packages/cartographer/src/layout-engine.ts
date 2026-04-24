@@ -69,7 +69,7 @@ export class LayoutEngine {
 		if (rec) {
 			const m = mById.get(rec.id);
 			if (m) {
-				positions.push({ ...m, x: cx - m.width / 2, y: cursorY, opacity: 1, text: rec.text, type: rec.type });
+				positions.push({ ...m, x: cx - m.width / 2, y: cursorY, opacity: 1, text: rec.text, type: rec.type, groupId: rec.groupId });
 				cursorY += m.height + GAP * 2;
 			}
 		}
@@ -83,7 +83,7 @@ export class LayoutEngine {
 			for (let i = 0; i < altMeasured.length; i++) {
 				const m = altMeasured[i];
 				const b = alts[i];
-				positions.push({ ...m, x, y: cursorY, opacity: 0.95, text: b.text, type: b.type });
+				positions.push({ ...m, x, y: cursorY, opacity: 0.95, text: b.text, type: b.type, groupId: b.groupId });
 				x += m.width + GAP;
 				rowH = Math.max(rowH, m.height);
 			}
@@ -96,13 +96,13 @@ export class LayoutEngine {
 		for (const b of pros) {
 			const m = mById.get(b.id);
 			if (!m) continue;
-			positions.push({ ...m, x: GAP, y: prosY, opacity: 0.85, text: b.text, type: b.type });
+			positions.push({ ...m, x: GAP, y: prosY, opacity: 0.85, text: b.text, type: b.type, groupId: b.groupId });
 			prosY += m.height + GAP;
 		}
 		for (const b of cons) {
 			const m = mById.get(b.id);
 			if (!m) continue;
-			positions.push({ ...m, x: bounds.width - m.width - GAP, y: consY, opacity: 0.85, text: b.text, type: b.type });
+			positions.push({ ...m, x: bounds.width - m.width - GAP, y: consY, opacity: 0.85, text: b.text, type: b.type, groupId: b.groupId });
 			consY += m.height + GAP;
 		}
 		cursorY = Math.max(prosY, consY) + GAP;
@@ -111,7 +111,7 @@ export class LayoutEngine {
 		for (const b of caveats) {
 			const m = mById.get(b.id);
 			if (!m) continue;
-			positions.push({ ...m, x: cx - m.width / 2, y: cursorY, opacity: 0.65, text: b.text, type: b.type });
+			positions.push({ ...m, x: cx - m.width / 2, y: cursorY, opacity: 0.65, text: b.text, type: b.type, groupId: b.groupId });
 			cursorY += m.height + GAP;
 		}
 
@@ -126,6 +126,7 @@ export class LayoutEngine {
 				opacity: b.type === 'context' ? 0.45 : 0.8,
 				text: b.text,
 				type: b.type,
+				groupId: b.groupId,
 			});
 			cursorY += m.height + GAP;
 		}
@@ -135,6 +136,7 @@ export class LayoutEngine {
 			positions,
 			bounds: { width: bounds.width, height: Math.max(cursorY + 40, bounds.height) },
 			mode: 'decision',
+			groups: structure.groups,
 		};
 	}
 
@@ -189,7 +191,7 @@ export class LayoutEngine {
 		}
 
 		const positions: PositionedBlock[] = structure.blocks.map((b, i) => {
-			const m = mById.get(b.id) ?? { id: b.id, width: 200, height: 40, fontSize: 16, fontWeight: 400 };
+			const m = mById.get(b.id) ?? { id: b.id, width: 200, height: 40, fontSize: 16, fontWeight: 400, lineHeight: 22, lineCount: 1 };
 			return {
 				...m,
 				x: x[i] - m.width / 2,
@@ -197,10 +199,11 @@ export class LayoutEngine {
 				opacity: 0.4 + 0.6 * b.importance,
 				text: b.text,
 				type: b.type,
+				groupId: b.groupId,
 			};
 		});
 
-		return { positions, bounds, mode: 'exploration' };
+		return { positions, bounds, mode: 'exploration', groups: structure.groups };
 	}
 }
 

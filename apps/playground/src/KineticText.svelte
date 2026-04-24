@@ -235,7 +235,7 @@
 	.kinetic-field {
 		position: relative;
 		font-family: 'Recursive', system-ui;
-		color: #f0f0f0;
+		color: var(--color-foreground);
 		flex: 1;
 		-webkit-font-smoothing: antialiased;
 	}
@@ -250,7 +250,7 @@
 
 	.hint {
 		font-size: 0.7rem;
-		color: #2a2a2a;
+		color: var(--color-muted-foreground);
 		font-family: monospace;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
@@ -261,6 +261,6 @@
 	}
 
 	.sep {
-		color: #1a1a1a;
+		color: var(--color-border);
 	}
 </style>

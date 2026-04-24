@@ -36,24 +36,41 @@ export class Measurer {
 	constructor(private options: MeasurerOptions) {}
 
 	measure(blocks: ContentBlock[]): MeasuredBlock[] {
-		return blocks.map((b) => {
-			const { fontSize, fontWeight } = styleForBlock(b);
-			const lineHeight = Math.round(fontSize * 1.35);
-			const provider = new MetricsProvider({
-				fontFamily: this.options.fontFamily,
-				fontSize,
-				lineHeight,
-			});
-			const layout = provider.layout(b.text, this.options.maxBlockWidth, { wght: fontWeight });
-			const width = Math.max(60, Math.max(0, ...layout.lineWidths));
-			const height = layout.totalHeight || lineHeight;
-			return {
-				id: b.id,
-				width,
-				height,
-				fontSize,
-				fontWeight,
-			};
+		return blocks.map((b) => this.measureOne(b, this.options.maxBlockWidth));
+	}
+
+	measureOne(block: ContentBlock, maxWidth: number): MeasuredBlock {
+		const { fontSize, fontWeight } = styleForBlock(block);
+		const lineHeight = Math.round(fontSize * 1.35);
+		const provider = new MetricsProvider({
+			fontFamily: this.options.fontFamily,
+			fontSize,
+			lineHeight,
 		});
+		const layout = provider.layout(block.text, Math.max(60, maxWidth), { wght: fontWeight });
+		const width = Math.max(60, Math.max(0, ...layout.lineWidths));
+		const lineCount = Math.max(1, layout.lineWidths.length);
+		const height = layout.totalHeight || lineHeight * lineCount;
+		return {
+			id: block.id,
+			width,
+			height,
+			fontSize,
+			fontWeight,
+			lineHeight,
+			lineCount,
+		};
+	}
+
+	/**
+	 * Measure a block, re-wrapping to roughly square aspect if the natural
+	 * measurement is very wide. Used to produce circle-friendly shapes.
+	 */
+	measureSquareish(block: ContentBlock): MeasuredBlock {
+		const first = this.measureOne(block, this.options.maxBlockWidth);
+		if (first.width <= first.height * 1.4) return first;
+		const area = first.width * first.height;
+		const target = Math.ceil(Math.sqrt(area));
+		return this.measureOne(block, target);
 	}
 }

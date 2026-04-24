@@ -1,0 +1,16 @@
+{
+  "$schema": "https://shadcn-svelte.com/schema.json",
+  "style": "default",
+  "raisedButtons": false,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "src/app.css",
+    "baseColor": "slate"
+  },
+  "aliases": {
+    "components": "$lib/components",
+    "utils": "$lib/utils",
+    "hooks": "$lib/hooks",
+    "ui": "$lib/components/ui"
+  }
+}
