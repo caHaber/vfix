@@ -8,8 +8,9 @@
 	import KineticText from './KineticText.svelte';
 	import PromptStudio from './PromptStudio.svelte';
 	import ResponseMap from './ResponseMap.svelte';
+	import SmartCharts from './SmartCharts.svelte';
 
-	type Tab = 'sliders' | 'kinetic' | 'prompt-studio' | 'response-map';
+	type Tab = 'sliders' | 'kinetic' | 'prompt-studio' | 'response-map' | 'smart-charts';
 	let activeTab = $state<Tab>('sliders');
 
 	const font = variableFont({
@@ -63,6 +64,7 @@
 			<Tabs.Trigger value="kinetic">Kinetic</Tabs.Trigger>
 			<Tabs.Trigger value="prompt-studio">Prompt Studio</Tabs.Trigger>
 			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
+			<Tabs.Trigger value="smart-charts">Smart Charts</Tabs.Trigger>
 		</Tabs.List>
 
 		<Tabs.Content value="sliders">
@@ -115,6 +117,10 @@
 
 		<Tabs.Content value="response-map">
 			<ResponseMap onSent={() => (activeTab = 'prompt-studio')} />
+		</Tabs.Content>
+
+		<Tabs.Content value="smart-charts">
+			<SmartCharts />
 		</Tabs.Content>
 	</Tabs.Root>
 </div>

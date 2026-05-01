@@ -9,12 +9,18 @@ const wasmResolved = existsSync(wasmPkgEntry)
 	? wasmPkgEntry
 	: resolve(__dirname, './src/wasm-stub.ts');
 
+const wasmStatsPkgEntry = resolve(__dirname, '../../packages/wasm-stats/pkg/vfir_wasm_stats.js');
+const wasmStatsResolved = existsSync(wasmStatsPkgEntry)
+	? wasmStatsPkgEntry
+	: resolve(__dirname, './src/wasm-stats-stub.ts');
+
 export default defineConfig({
 	plugins: [tailwindcss(), svelte()],
 	resolve: {
 		alias: {
-			// Use the real WASM package if built, otherwise fall back to the stub
+			// Use the real WASM packages if built, otherwise fall back to stubs
 			'@vfir/wasm': wasmResolved,
+			'@vfir/wasm-stats': wasmStatsResolved,
 			'$lib': resolve(__dirname, './src/lib'),
 		},
 	},
