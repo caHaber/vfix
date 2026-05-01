@@ -1,4 +1,4 @@
-import { MetricsProvider } from '@vfir/core';
+import { MetricsProvider } from '@variable-font/core';
 import type { ContentBlock, MeasuredBlock } from './types.js';
 
 /** Font-size mapping per block type, scaled by importance */

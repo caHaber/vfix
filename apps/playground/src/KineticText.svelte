@@ -4,7 +4,7 @@
 		Interpolator,
 		easeOutCubic,
 		type LayoutWord,
-	} from '@vfir/core';
+	} from '@variable-font/core';
 	import { onMount, onDestroy } from 'svelte';
 
 	const PARAGRAPHS = [

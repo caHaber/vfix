@@ -1,4 +1,4 @@
-import { loadWasm } from '@vfir/core';
+import { loadWasm } from '@variable-font/core';
 import { Annotator } from './annotator.js';
 import type { AnnotationEvent, AnnotatorOptions } from './annotator.js';
 import { detectMode } from './mode-detector.js';

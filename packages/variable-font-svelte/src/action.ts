@@ -1,5 +1,5 @@
-import { Renderer } from '@vfir/core';
-import type { AxisSnapshot, RendererOptions } from '@vfir/core';
+import { Renderer } from '@variable-font/core';
+import type { AxisSnapshot, RendererOptions } from '@variable-font/core';
 import type { Action } from 'svelte/action';
 
 export interface VariableFontParams {

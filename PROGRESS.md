@@ -20,7 +20,7 @@
 
 ---
 
-## Phase 2 — Core Package (`@vfir/core`) ✅
+## Phase 2 — Core Package (`@variable-font/core`) ✅
 
 **Files created:**
 - `packages/core/package.json`
@@ -34,7 +34,7 @@
 - `packages/core/src/index.ts` — barrel export
 - `packages/core/src/types/wasm.d.ts` — type stub for `@vfir/wasm` so core builds without wasm-pack output
 
-**Build:** `pnpm --filter @vfir/core run build` ✅
+**Build:** `pnpm --filter @variable-font/core run build` ✅
 
 ---
 
@@ -52,18 +52,13 @@
 
 ---
 
-## Phase 4 — Vanilla DOM Adapter (`@vfir/vanilla`) ✅
+## Phase 4 — Vanilla DOM Adapter (removed)
 
-**Files created:**
-- `packages/vanilla/package.json`
-- `packages/vanilla/tsconfig.json`
-- `packages/vanilla/src/index.ts` — `vfir(options)` function: accepts CSS selector or element, subscribes to interpolator, writes `font-variation-settings` on every frame
-
-**Build:** `pnpm --filter @vfir/vanilla run build` ✅
+The vanilla DOM adapter (`@vfir/vanilla`) was removed because nothing in the playground or other packages ever consumed it. If a non-Svelte adapter is needed in the future, recreate it as a thin wrapper over `@variable-font/core`.
 
 ---
 
-## Phase 5 — Svelte 5 Adapter (`@vfir/svelte`) ✅
+## Phase 5 — Svelte 5 Adapter (`@variable-font/svelte`) ✅
 
 **Files created:**
 - `packages/svelte/package.json`
@@ -76,7 +71,7 @@
 **Issues resolved:**
 - Svelte compile warning about `options` captured outside reactive context in `VariableText.svelte` — fixed with `untrack(() => variableFont(options))`
 
-**Build:** `pnpm --filter @vfir/svelte run build` ✅
+**Build:** `pnpm --filter @variable-font/svelte run build` ✅
 
 ---
 

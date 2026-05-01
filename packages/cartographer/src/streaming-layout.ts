@@ -1,4 +1,4 @@
-import { getWasm } from '@vfir/core';
+import { getWasm } from '@variable-font/core';
 import type { Measurer } from './measurer.js';
 import type {
 	ContentBlock,

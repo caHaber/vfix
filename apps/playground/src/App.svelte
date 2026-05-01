@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { variableFont } from '@vfir/svelte';
-	import { easeOutCubic } from '@vfir/core';
+	import { variableFont } from '@variable-font/svelte';
+	import { easeOutCubic } from '@variable-font/core';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Card from '$lib/components/ui/card';
 	import { Slider } from '$lib/components/ui/slider';

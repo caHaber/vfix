@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { RendererOptions, AxisSnapshot } from '@vfir/core';
+	import type { RendererOptions, AxisSnapshot } from '@variable-font/core';
 	import { variableFont } from './variableFont.svelte.js';
 	import { untrack } from 'svelte';
 	import type { Snippet } from 'svelte';

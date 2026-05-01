@@ -15,7 +15,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@vfir/core": "workspace:*"
+		"@variable-font/core": "workspace:*"
 	},
 	"devDependencies": {
 		"tsup": "^8.5.1"

@@ -1,19 +1,18 @@
 # vfir
 
-**Variable Font Interpolation Renderer.** A framework-agnostic core for real-time variable font axis interpolation (Pretext for layout, optional Rust/WASM for math), plus a Svelte 5 adapter, a vanilla DOM adapter, and a set of analysis tools for LLM developers (`@prompt-studio/core`, `@vfir/cartographer`, `@vfir/smart-charts` + `@vfir/wasm-stats`).
+**Variable Font Interpolation Renderer.** A framework-agnostic core for real-time variable font axis interpolation (Pretext for layout, optional Rust/WASM for math), plus a Svelte 5 adapter and a set of analysis tools for LLM developers (`@prompt-studio/core`, `@vfir/cartographer`, `@vfir/smart-charts` + `@vfir/wasm-stats`).
 
 ## Repo layout
 
 ```
-packages/core/          # @vfir/core         — Interpolator, MetricsProvider, Renderer, easing, WASM bridge
-packages/wasm/          # @vfir/wasm         — Rust WASM module (font/layout/cartographer math)
-packages/wasm-stats/    # @vfir/wasm-stats   — Rust WASM module (statistical engine + text aggregations)
-packages/svelte/        # @vfir/svelte       — Svelte 5 adapter (runes, actions, components)
-packages/vanilla/       # @vfir/vanilla      — Plain DOM adapter
-packages/prompt-studio/ # @prompt-studio/core — Tokenization, analysis, diff
-packages/cartographer/  # @vfir/cartographer — Streaming LLM response → spatial map / editor
-packages/smart-charts/  # @vfir/smart-charts — WASM stats + LLM enhancement + Layercake renderer
-apps/playground/        # Vite + Svelte 5 demo app (the tabs below)
+packages/variable-font-core/    # @variable-font/core   — Interpolator, MetricsProvider, Renderer, easing, WASM bridge
+packages/variable-font-svelte/  # @variable-font/svelte — Svelte 5 adapter (runes, actions, components)
+packages/wasm/                  # @vfir/wasm            — Rust WASM module (font/layout/cartographer math)
+packages/wasm-stats/            # @vfir/wasm-stats      — Rust WASM module (statistical engine + text aggregations)
+packages/prompt-studio/         # @prompt-studio/core   — Tokenization, analysis, diff
+packages/cartographer/          # @vfir/cartographer    — Streaming LLM response → spatial map / editor
+packages/smart-charts/          # @vfir/smart-charts    — WASM stats + LLM enhancement + Layercake renderer
+apps/playground/                # Vite + Svelte 5 demo app (the tabs below)
 ```
 
 ## Getting started
@@ -29,7 +28,7 @@ pnpm lint               # biome check
 pnpm typecheck          # per-package tsc / svelte-check
 ```
 
-Requires Node ≥ 20 and pnpm 9. Rust + `wasm-pack` are only needed if you want to build the WASM modules locally — both the playground and `@vfir/core` fall back to JS stubs when WASM isn't built.
+Requires Node ≥ 20 and pnpm 9. Rust + `wasm-pack` are only needed if you want to build the WASM modules locally — both the playground and `@variable-font/core` fall back to JS stubs when WASM isn't built.
 
 ## Playground tabs
 
@@ -37,7 +36,7 @@ The playground (`apps/playground`) is the main place to see everything in action
 
 ### Sliders
 
-The minimal demo. Drag sliders for each Recursive font axis (`wght`, `slnt`, `CASL`, `CRSV`, `MONO`) and watch sample text interpolate in real time. This is the canonical use of `@vfir/svelte`'s `variableFont` action — set axis targets, the renderer eases toward them with a spring.
+The minimal demo. Drag sliders for each Recursive font axis (`wght`, `slnt`, `CASL`, `CRSV`, `MONO`) and watch sample text interpolate in real time. This is the canonical use of `@variable-font/svelte`'s `variableFont` action — set axis targets, the renderer eases toward them with a spring.
 
 ### Kinetic
 
@@ -62,7 +61,7 @@ WASM-powered chart pipeline with built-in statistical intelligence and optional 
 
 - **Pretext for layout** — all text measurement and line-breaking goes through `@chenglou/pretext`, wrapped in core's `MetricsProvider`. Adapters and apps never call Pretext directly.
 - **WASM with JS fallback** — core checks `isWasmReady()` at runtime. If WASM is loaded, use it for interpolation math; otherwise fall back to JS. Apps work without WASM.
-- **Framework-agnostic core** — `@vfir/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, vanilla DOM, etc.
+- **Framework-agnostic core** — `@variable-font/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, etc.
 - **Pluggable tokenizers** — `TokenizerRegistry` supports lazy-loaded tokenizers. New tokenizer families are additive.
 
 ## Conventions

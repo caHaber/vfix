@@ -1,5 +1,5 @@
 {
-  "name": "@vfir/svelte",
+  "name": "@variable-font/svelte",
   "version": "0.0.1",
   "type": "module",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "@vfir/core": "workspace:*"
+    "@variable-font/core": "workspace:*"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"

@@ -1,4 +1,4 @@
-import { loadWasm, getWasm } from '@vfir/core';
+import { loadWasm, getWasm } from '@variable-font/core';
 import type {
 	LayoutMode,
 	LayoutResult,

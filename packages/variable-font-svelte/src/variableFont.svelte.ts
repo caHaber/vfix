@@ -1,5 +1,5 @@
-import { Renderer } from '@vfir/core';
-import type { RendererOptions, LayoutResult, RenderState } from '@vfir/core';
+import { Renderer } from '@variable-font/core';
+import type { RendererOptions, LayoutResult, RenderState } from '@variable-font/core';
 import { onDestroy } from 'svelte';
 
 export type VariableFontOptions = RendererOptions;

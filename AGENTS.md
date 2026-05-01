@@ -7,13 +7,12 @@
 ## Monorepo Structure
 
 ```
-packages/core/          # @vfir/core — Interpolator, MetricsProvider, Renderer, easing, WASM bridge
-packages/wasm/          # @vfir/wasm — Rust WASM module (layout, interpolation math)
-packages/svelte/        # @vfir/svelte — Svelte 5 adapter (runes, actions, components)
-packages/vanilla/       # @vfir/vanilla — Plain DOM adapter
-packages/prompt-studio/ # @prompt-studio/core — Tokenization, analysis, diff engine
-apps/playground/        # Vite + Svelte playground (Sliders, Kinetic, Prompt Studio tabs)
-examples/               # Standalone examples
+packages/variable-font-core/    # @variable-font/core   — Interpolator, MetricsProvider, Renderer, easing, WASM bridge
+packages/variable-font-svelte/  # @variable-font/svelte — Svelte 5 adapter (runes, actions, components)
+packages/wasm/                  # @vfir/wasm            — Rust WASM module (layout, interpolation math)
+packages/prompt-studio/         # @prompt-studio/core   — Tokenization, analysis, diff engine
+apps/playground/                # Vite + Svelte playground (Sliders, Kinetic, Prompt Studio tabs)
+examples/                       # Standalone examples
 ```
 
 > Project-wide notes (research, plans, tasks, worklogs, decisions) are tracked in
@@ -44,7 +43,7 @@ pnpm build:wasm       # Build WASM module (requires wasm-pack + Rust)
 
 - **Pretext for layout**: All text measurement and line-breaking goes through `@chenglou/pretext`, wrapped in core's `MetricsProvider`. Never call Pretext directly from adapters or apps.
 - **WASM with JS fallback**: Core checks `isWasmReady()` at runtime. If WASM is loaded, use it for interpolation math. Otherwise fall back to JS. Apps should work without WASM.
-- **Framework-agnostic core**: `@vfir/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, vanilla DOM, etc.
+- **Framework-agnostic core**: `@variable-font/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, etc.
 - **Pluggable tokenizers**: `TokenizerRegistry` supports lazy-loaded tokenizers. New tokenizer families are additive.
 
 ## Code Conventions
