@@ -18,6 +18,7 @@ examples/                       # Standalone examples
 > Project-wide notes (research, plans, tasks, worklogs, decisions) are tracked in
 > the Obsidian vault at `~/Documents/casey-vault/Projects/vfix/`, per the global
 > instructions in `~/.claude/CLAUDE.md`. Don't duplicate that into the repo.
+> Please use the obsidian-cli skill and cli tool to interface with the project notes.
 
 ## Tech Stack
 
