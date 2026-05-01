@@ -1,0 +1,40 @@
+{
+	"name": "@vfir/smart-charts",
+	"version": "0.0.1",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"svelte": "./dist/index.js",
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "svelte-package -i src",
+		"typecheck": "svelte-check --tsconfig ./tsconfig.json"
+	},
+	"peerDependencies": {
+		"@vfir/wasm-stats": "workspace:*",
+		"layercake": "^8.0.0",
+		"svelte": "^5.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@vfir/wasm-stats": {
+			"optional": true
+		}
+	},
+	"dependencies": {
+		"d3-scale": "^4.0.2"
+	},
+	"devDependencies": {
+		"@sveltejs/package": "^2.0.0",
+		"@types/d3-scale": "^4.0.8",
+		"@vfir/wasm-stats": "workspace:*",
+		"layercake": "^8.0.0",
+		"svelte": "^5.0.0",
+		"svelte-check": "^4.0.0",
+		"typescript": "^5.0.0"
+	}
+}

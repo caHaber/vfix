@@ -1,0 +1,10 @@
+{
+	"name": "@vfir/wasm-stats",
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"build": "wasm-pack build --target web --release --out-dir pkg",
+		"typecheck": "echo 'WASM package — no TS to check'"
+	},
+	"files": ["pkg/"]
+}

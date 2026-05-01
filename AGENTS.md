@@ -14,9 +14,11 @@ packages/vanilla/       # @vfir/vanilla — Plain DOM adapter
 packages/prompt-studio/ # @prompt-studio/core — Tokenization, analysis, diff engine
 apps/playground/        # Vite + Svelte playground (Sliders, Kinetic, Prompt Studio tabs)
 examples/               # Standalone examples
-plans/                  # Implementation plans
-tasks/                  # Completed task logs (see Task Tracking below)
 ```
+
+> Project-wide notes (research, plans, tasks, worklogs, decisions) are tracked in
+> the Obsidian vault at `~/Documents/casey-vault/Projects/vfix/`, per the global
+> instructions in `~/.claude/CLAUDE.md`. Don't duplicate that into the repo.
 
 ## Tech Stack
 
@@ -44,15 +46,6 @@ pnpm build:wasm       # Build WASM module (requires wasm-pack + Rust)
 - **WASM with JS fallback**: Core checks `isWasmReady()` at runtime. If WASM is loaded, use it for interpolation math. Otherwise fall back to JS. Apps should work without WASM.
 - **Framework-agnostic core**: `@vfir/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, vanilla DOM, etc.
 - **Pluggable tokenizers**: `TokenizerRegistry` supports lazy-loaded tokenizers. New tokenizer families are additive.
-
-## Task Tracking
-
-**Always log completed work in the `tasks/` folder.**
-
-- Filename format: `YYYY-MM-DD-short-description.md`
-- Include: date, status, summary of what was done, key files changed, remaining/open items
-- One task file per logical unit of work (a feature, a phase, a significant change)
-- Update existing task files if revisiting prior work
 
 ## Code Conventions
 
