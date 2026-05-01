@@ -6,20 +6,24 @@
 		type LayoutWord,
 	} from '@variable-font/core';
 	import { onMount, onDestroy } from 'svelte';
+	import readmeRaw from '../../../README.md?raw';
 
-	const PARAGRAPHS = [
-		'The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump. Sphinx of black quartz judge my vow.',
-		'Weight is not a measure of effort but of intention. Every curve carries the memory of the hand that drew it. Letters lean into the wind of meaning, swelling with emphasis, collapsing into whisper. The space between strokes holds as much meaning as the strokes themselves.',
-		'A typeface is a voice without a throat. It can shout from across a room or murmur in the dark. Variable fonts let that voice shift mid-sentence, crescendo mid-word, break into something unexpected and raw and alive.',
-		'The interpolation between states is where design lives. Not in the extremes. The extremes are just coordinates. The path between them is the actual form. The journey through axis-space traces a curve that no single snapshot can capture.',
-		'Kinetic typography is not decoration. When words move in response to attention, they become aware. They stop being symbols and start being things. Approach them carefully. Watch how they react to your presence.',
-		'Light to heavy. Rigid to casual. Upright to italic. The axes are dimensions of expression, and you can inhabit any point in that space simultaneously. That is the promise of variable fonts.',
-		'Form follows physics here. Springs, not timelines. Stiffness, not duration. Each word settles at its own rate, influenced by its neighbours but ultimately independent. The system breathes.',
-		'Typography has always been about control. Variable fonts dissolve that control into a continuum. Every weight exists. Every slant exists. Every point in the design space is a valid expression waiting to be spoken.',
-		'The density of text on a page creates its own gravity. Heavy words pull the eye. Light words recede into texture. The interplay between mass and void is the oldest trick in design, and the newest frontier in digital type.',
-	];
+	// Strip markdown syntax so the kinetic field shows clean prose, not symbols.
+	function readmeToProse(md: string): string {
+		return md
+			.replace(/```[\s\S]*?```/g, ' ') // fenced code blocks
+			.replace(/`[^`]*`/g, ' ') // inline code
+			.replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // images
+			.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links → text
+			.replace(/^>\s?/gm, '') // blockquote markers
+			.replace(/^#{1,6}\s+/gm, '') // heading markers
+			.replace(/^\s*[-*+]\s+/gm, '') // bullet markers
+			.replace(/[*_~]+/g, '') // emphasis chars
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
 
-	const TEXT = PARAGRAPHS.join(' ');
+	const TEXT = readmeToProse(readmeRaw);
 	const FONT_FAMILY = 'Recursive';
 	const FONT_SIZE = 32;
 	const LINE_HEIGHT = 42;

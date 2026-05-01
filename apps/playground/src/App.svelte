@@ -10,8 +10,8 @@
 	import ResponseMap from './ResponseMap.svelte';
 	import SmartCharts from './SmartCharts.svelte';
 
-	type Tab = 'sliders' | 'kinetic' | 'prompt-studio' | 'response-map' | 'smart-charts';
-	let activeTab = $state<Tab>('sliders');
+	type Tab = 'kinetic' | 'sliders' | 'smart-charts' | 'response-map' | 'prompt-studio';
+	let activeTab = $state<Tab>('kinetic');
 
 	const font = variableFont({
 		fontFamily: 'Recursive',
@@ -34,13 +34,19 @@
 		MONO: { min: 0, max: 1, step: 0.01 },
 	};
 
-	function handleSlider(tag: string, event: Event) {
-		const target = event.target as HTMLInputElement;
-		font.set({ [tag]: parseFloat(target.value) });
-	}
+	// Sliders track the user's *target* directly so the thumb doesn't lag behind
+	// the spring-eased animation that drives the rendered text.
+	let axisTargets = $state<Record<string, number>>({
+		wght: 400,
+		slnt: 0,
+		CASL: 0,
+		CRSV: 0.5,
+		MONO: 0,
+	});
 
 	function handleSliderChange(tag: string, values: number[]) {
 		if (values.length > 0) {
+			axisTargets[tag] = values[0];
 			font.set({ [tag]: values[0] });
 		}
 	}
@@ -60,11 +66,11 @@
 
 	<Tabs.Root bind:value={activeTab} class="flex-1 flex flex-col">
 		<Tabs.List class="sticky top-12 z-10 w-full justify-start">
-			<Tabs.Trigger value="sliders">Sliders</Tabs.Trigger>
 			<Tabs.Trigger value="kinetic">Kinetic</Tabs.Trigger>
-			<Tabs.Trigger value="prompt-studio">Prompt Studio</Tabs.Trigger>
-			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
+			<Tabs.Trigger value="sliders">Variable Fonts</Tabs.Trigger>
 			<Tabs.Trigger value="smart-charts">Smart Charts</Tabs.Trigger>
+			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
+			<Tabs.Trigger value="prompt-studio">Prompt Studio</Tabs.Trigger>
 		</Tabs.List>
 
 		<Tabs.Content value="sliders">
@@ -76,12 +82,12 @@
 						<Card.Title>Font Axes</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						{#each Object.entries(font.axes) as [tag, value]}
+						{#each Object.entries(axisTargets) as [tag, value] (tag)}
 							{@const range = axisRanges[tag] ?? { min: 0, max: 1, step: 0.01 }}
 							<div class="space-y-2">
 								<div class="flex justify-between items-center">
 									<Label for={tag} class="font-mono text-sm">{tag}</Label>
-									<span class="font-mono text-sm text-muted-foreground">{typeof value === 'number' ? value.toFixed(2) : ''}</span>
+									<span class="font-mono text-sm text-muted-foreground">{value.toFixed(2)}</span>
 								</div>
 								<Slider
 									id={tag}
