@@ -8,3 +8,5 @@ pkg/
 .vite/
 .svelte-kit/
 .vercel
+
+.claude/worktrees/
