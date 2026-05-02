@@ -6,12 +6,19 @@
 	import { Slider } from '$lib/components/ui/slider';
 	import { Label } from '$lib/components/ui/label';
 	import KineticText from './KineticText.svelte';
+	import KineticCanvas from './KineticCanvas.svelte';
 	import PromptStudio from './PromptStudio.svelte';
 	import ResponseMap from './ResponseMap.svelte';
 	import SmartCharts from './SmartCharts.svelte';
 
-	type Tab = 'kinetic' | 'sliders' | 'smart-charts' | 'response-map' | 'prompt-studio';
-	let activeTab = $state<Tab>('kinetic');
+	type Tab =
+		| 'kinetic'
+		| 'kinetic-gpu'
+		| 'sliders'
+		| 'smart-charts'
+		| 'response-map'
+		| 'prompt-studio';
+	let activeTab = $state<Tab>('kinetic-gpu');
 
 	const font = variableFont({
 		fontFamily: 'Recursive',
@@ -66,7 +73,8 @@
 
 	<Tabs.Root bind:value={activeTab} class="flex-1 flex flex-col">
 		<Tabs.List class="sticky top-12 z-10 w-full justify-start">
-			<Tabs.Trigger value="kinetic">Kinetic</Tabs.Trigger>
+			<Tabs.Trigger value="kinetic-gpu">Kinetic (GPU)</Tabs.Trigger>
+			<Tabs.Trigger value="kinetic">Kinetic (DOM)</Tabs.Trigger>
 			<Tabs.Trigger value="sliders">Variable Fonts</Tabs.Trigger>
 			<Tabs.Trigger value="smart-charts">Smart Charts</Tabs.Trigger>
 			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
@@ -111,6 +119,10 @@
 					Casey Haber — variable font interpolation renderer
 				</p>
 			</main>
+		</Tabs.Content>
+
+		<Tabs.Content value="kinetic-gpu">
+			<KineticCanvas />
 		</Tabs.Content>
 
 		<Tabs.Content value="kinetic">

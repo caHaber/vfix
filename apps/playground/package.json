@@ -14,6 +14,8 @@
     "@tailwindcss/vite": "^4.2.4",
     "@vfir/cartographer": "workspace:*",
     "@variable-font/core": "workspace:*",
+    "@variable-font/atlas": "workspace:*",
+    "@variable-font/atlas-webgl": "workspace:*",
     "@vfir/smart-charts": "workspace:*",
     "@variable-font/svelte": "workspace:*",
     "bits-ui": "^2.18.0",
