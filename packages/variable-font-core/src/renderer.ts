@@ -1,6 +1,5 @@
 import { Interpolator } from './interpolator.js';
 import { MetricsProvider } from './metrics.js';
-import { isWasmReady, getWasm } from './wasm-bridge.js';
 import type { AxisSnapshot, InterpolatorOptions, LayoutResult, Unsubscribe } from './types.js';
 
 export interface TextBlock {
@@ -46,6 +45,9 @@ export class Renderer {
 	readonly fontSize: number;
 	readonly lineHeight: number;
 
+	private lastFontString: string | null = null;
+	private lastLayouts: Map<string, LayoutResult> = new Map();
+
 	constructor(options: RendererOptions) {
 		this.fontFamily = options.fontFamily;
 		this.fontSize = options.fontSize ?? 32;
@@ -66,11 +68,14 @@ export class Renderer {
 	/** Register a text block. Pretext will handle its line-breaking. */
 	addBlock(block: TextBlock): void {
 		this.blocks.set(block.id, block);
+		this.lastLayouts.delete(block.id);
+		this.lastFontString = null;
 	}
 
 	/** Remove a text block */
 	removeBlock(id: string): void {
 		this.blocks.delete(id);
+		this.lastLayouts.delete(id);
 	}
 
 	/** Update a block's maxWidth (e.g. on resize). Triggers re-layout. */
@@ -78,7 +83,7 @@ export class Renderer {
 		const block = this.blocks.get(id);
 		if (!block) return;
 		block.maxWidth = maxWidth;
-		// Re-layout with current axes
+		this.lastFontString = null;
 		this.onAxesChanged(this.interpolator.getSnapshot());
 	}
 
@@ -90,6 +95,7 @@ export class Renderer {
 
 	/** Force a re-layout of all blocks at current axes */
 	forceLayout(): void {
+		this.lastFontString = null;
 		this.onAxesChanged(this.interpolator.getSnapshot());
 	}
 
@@ -99,25 +105,24 @@ export class Renderer {
 		this.interpolator.destroy();
 		this.renderCallbacks.clear();
 		this.blocks.clear();
+		this.lastLayouts.clear();
 	}
 
 	private onAxesChanged(axes: AxisSnapshot): void {
-		const layouts = new Map<string, LayoutResult>();
+		const fontString = this.metrics.buildFontString(axes);
+		const cacheValid =
+			fontString === this.lastFontString && this.lastLayouts.size === this.blocks.size;
 
-		for (const [id, block] of this.blocks) {
-			// Use Pretext (via MetricsProvider) for layout
-			const result = this.metrics.layout(block.text, block.maxWidth, axes);
-
-			// If WASM is loaded, use it for any additional layout computation
-			if (isWasmReady()) {
-				const wasm = getWasm();
-				// WASM compute_layout can refine line-breaks with glyph-level precision
-				// For now, Pretext handles the primary layout; WASM is available for
-				// advanced features (collision detection, axis-space pathfinding)
-				void wasm;
+		let layouts: Map<string, LayoutResult>;
+		if (cacheValid) {
+			layouts = this.lastLayouts;
+		} else {
+			layouts = new Map<string, LayoutResult>();
+			for (const [id, block] of this.blocks) {
+				layouts.set(id, this.metrics.layout(block.text, block.maxWidth, axes));
 			}
-
-			layouts.set(id, result);
+			this.lastFontString = fontString;
+			this.lastLayouts = layouts;
 		}
 
 		const state: RenderState = { axes, layouts };
