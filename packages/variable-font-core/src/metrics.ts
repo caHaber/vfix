@@ -10,16 +10,22 @@ export interface MetricsProviderOptions {
 /**
  * Wraps Pretext for text measurement and layout.
  *
- * Uses `prepareWithSegments` for the one-time measurement pass,
- * then `layoutWithLines` for the cheap arithmetic layout.
- * Caches the prepared state so re-layout on resize is fast.
+ * Pretext does the heavy lifting (segmentation, BiDi, line-breaking) under
+ * `prepareWithSegments` + `layoutWithLines`. Per-word x offsets within each
+ * line are still measured via canvas measureText — Pretext exposes per-segment
+ * widths internally but its segment cursors don't always align cleanly with
+ * "words" once whitespace and end-of-line breaks are involved, so a focused
+ * canvas pass per line is the simpler and reliably-correct approach.
+ *
+ * The frame-rate win comes from the Renderer cache: most animated frames
+ * reuse the previous layout because slnt and the per-word axes (CASL/CRSV/MONO)
+ * don't appear in the canvas font shorthand at all.
  */
 export class MetricsProvider {
 	private fontFamily: string;
 	private fontSize: number;
 	private lineHeight: number;
 
-	/** Canvas for per-word width measurement (used to compute x offsets within lines) */
 	private canvas: OffscreenCanvas | HTMLCanvasElement;
 	private ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
 
@@ -37,29 +43,25 @@ export class MetricsProvider {
 		}
 	}
 
-	/** Build a CSS font string for Pretext and canvas measurement */
+	/**
+	 * Build a CSS font string for Pretext's canvas measurement.
+	 *
+	 * We deliberately omit slnt: it doesn't change advance widths in a way that
+	 * matters here, and including it at full float precision would make every
+	 * animated frame produce a fresh entry in Pretext's internal prepared-text
+	 * cache. CASL/CRSV/MONO aren't part of canvas font shorthand at all and so
+	 * never affect Pretext layout.
+	 */
 	buildFontString(axes?: AxisSnapshot): string {
-		// Pretext uses the same format as canvas ctx.font
-		// Weight can be embedded in the font shorthand
 		const weight = axes?.wght ?? 400;
-		const slant = axes?.slnt;
-		const style = slant && slant < 0 ? `oblique ${slant}deg ` : '';
-		return `${style}${weight} ${this.fontSize}px ${this.fontFamily}`;
+		return `${weight} ${this.fontSize}px ${this.fontFamily}`;
 	}
 
-	/**
-	 * Lay out text into positioned words using Pretext.
-	 *
-	 * 1. `prepareWithSegments` does the one-time measurement pass
-	 * 2. `layoutWithLines` computes line breaks (pure arithmetic)
-	 * 3. Per-word x-offsets computed via canvas measureText
-	 */
 	layout(text: string, maxWidth: number, axes?: AxisSnapshot): LayoutResult {
 		const fontString = this.buildFontString(axes);
 		const prepared = prepareWithSegments(text, fontString);
 		const result = layoutWithLines(prepared, maxWidth, this.lineHeight);
 
-		// Set canvas font to match for per-word measurement
 		this.ctx.font = fontString;
 
 		const words: LayoutWord[] = [];
@@ -92,10 +94,6 @@ export class MetricsProvider {
 		};
 	}
 
-	/**
-	 * Re-layout with a new width but same prepared text.
-	 * Cheaper than a full layout() since Pretext caches internally.
-	 */
 	relayout(text: string, maxWidth: number, axes?: AxisSnapshot): LayoutResult {
 		return this.layout(text, maxWidth, axes);
 	}

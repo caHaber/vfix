@@ -27,7 +27,12 @@ pub fn compute_layout(advances: &[f32], available_width: f32, break_points: &[u3
 
 #[wasm_bindgen]
 pub fn interpolate_axes(from: &[f32], to: &[f32], t: f32, curve_type: u8) -> Vec<f32> {
-    let t_eased = match curve_type {
+    let t_eased = ease_t(t, curve_type);
+    from.iter().zip(to.iter()).map(|(a, b)| a + (b - a) * t_eased).collect()
+}
+
+fn ease_t(t: f32, curve_type: u8) -> f32 {
+    match curve_type {
         1 => {
             let t1 = t - 1.0;
             t1 * t1 * t1 + 1.0
@@ -37,8 +42,90 @@ pub fn interpolate_axes(from: &[f32], to: &[f32], t: f32, curve_type: u8) -> Vec
             1.0 - decay * (1.0 - t)
         }
         _ => t,
-    };
-    from.iter().zip(to.iter()).map(|(a, b)| a + (b - a) * t_eased).collect()
+    }
+}
+
+/// Batched spring step for N groups × K axes.
+///
+/// `from`, `to` are flat arrays of length N*K (group-major: g0a0, g0a1, ..., g1a0, ...).
+/// `stiffness` is per-group (length N).
+/// Returns a flat Vec<f32> of length N*K + 1; the trailing element is 1.0 if any
+/// component is still > epsilon from its target, else 0.0.
+#[wasm_bindgen]
+pub fn interpolate_batch(
+    from: &[f32],
+    to: &[f32],
+    stiffness: &[f32],
+    epsilon: f32,
+    axes_per_group: u32,
+    curve_type: u8,
+) -> Vec<f32> {
+    let n = from.len();
+    let k = axes_per_group as usize;
+    let groups = if k == 0 { 0 } else { n / k };
+    let mut out = Vec::with_capacity(n + 1);
+    let mut any_moving = 0.0f32;
+    for g in 0..groups {
+        let s = stiffness.get(g).copied().unwrap_or(0.08);
+        let s_eased = ease_t(s, curve_type);
+        for kk in 0..k {
+            let i = g * k + kk;
+            let a = from[i];
+            let b = to[i];
+            let delta = b - a;
+            if delta.abs() < epsilon {
+                out.push(b);
+            } else {
+                out.push(a + delta * s_eased);
+                any_moving = 1.0;
+            }
+        }
+    }
+    out.push(any_moving);
+    out
+}
+
+/// Radial bloom shaping for kinetic typography.
+///
+/// For each word with center (cx[i], cy[i]) and a mouse at (mouse_x, mouse_y),
+/// compute target axis values via a smoothstep falloff (wider, smoother bloom
+/// than a raw cubic):
+///   raw  = max(0, 1 - dist/radius)
+///   p    = smoothstep(raw)        // 3raw^2 - 2raw^3
+///   wght = wght_min + p * wght_range
+///   CASL = raw^2
+///   slnt = -p * slnt_range
+///   MONO = max(0, raw - 0.5) * 2  // engages from half-radius inward
+///   CRSV = p
+///
+/// Returns a flat Vec<f32> of length N*5, ordered [wght, CASL, slnt, MONO, CRSV] per word.
+#[wasm_bindgen]
+pub fn compute_radial_targets(
+    cx: &[f32],
+    cy: &[f32],
+    mouse_x: f32,
+    mouse_y: f32,
+    radius: f32,
+    wght_min: f32,
+    wght_range: f32,
+    slnt_range: f32,
+) -> Vec<f32> {
+    let n = cx.len();
+    let mut out = Vec::with_capacity(n * 5);
+    let inv_r = if radius > 0.0 { 1.0 / radius } else { 0.0 };
+    for i in 0..n {
+        let dx = mouse_x - cx[i];
+        let dy = mouse_y - cy[i];
+        let dist = (dx * dx + dy * dy).sqrt();
+        let raw = (1.0 - dist * inv_r).max(0.0);
+        let p = raw * raw * (3.0 - 2.0 * raw);
+        out.push(wght_min + p * wght_range);
+        out.push(raw * raw);
+        out.push(-p * slnt_range);
+        out.push((raw - 0.5).max(0.0) * 2.0);
+        out.push(p);
+    }
+    out
 }
 
 #[wasm_bindgen]

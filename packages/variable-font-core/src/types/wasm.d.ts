@@ -11,6 +11,24 @@ declare module '@vfir/wasm' {
 		t: number,
 		curve_type: number,
 	): Float32Array;
+	export function interpolate_batch(
+		from: Float32Array,
+		to: Float32Array,
+		stiffness: Float32Array,
+		epsilon: number,
+		axes_per_group: number,
+		curve_type: number,
+	): Float32Array;
+	export function compute_radial_targets(
+		cx: Float32Array,
+		cy: Float32Array,
+		mouse_x: number,
+		mouse_y: number,
+		radius: number,
+		wght_min: number,
+		wght_range: number,
+		slnt_range: number,
+	): Float32Array;
 	export function cubic_bezier_interpolate(
 		x1: number,
 		y1: number,
