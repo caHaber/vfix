@@ -1,16 +1,52 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "organizeImports": { "enabled": true },
-  "linter": {
-    "enabled": true,
-    "rules": { "recommended": true }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "tab",
-    "lineWidth": 100
-  },
-  "javascript": {
-    "formatter": { "quoteStyle": "single", "semicolons": "always" }
-  }
+	"$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": [
+			"apps/**/*.{ts,tsx,js,jsx,svelte,json}",
+			"packages/**/*.{ts,tsx,js,jsx,svelte,json}",
+			"scripts/**/*.{ts,js,sh}",
+			"*.{json,ts,js}",
+			"!**/node_modules",
+			"!**/dist",
+			"!**/.svelte-kit",
+			"!**/target",
+			"!**/pkg",
+			"!**/.vite",
+			"!**/.turbo",
+			"!**/*.tsbuildinfo",
+			"!**/pnpm-lock.yaml",
+			"!.claude/worktrees"
+		]
+	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"linter": {
+		"enabled": true,
+		"rules": { "recommended": true }
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 100
+	},
+	"javascript": {
+		"formatter": { "quoteStyle": "single", "semicolons": "always" }
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.svelte"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedVariables": "off",
+						"noUnusedImports": "off"
+					}
+				}
+			}
+		}
+	]
 }

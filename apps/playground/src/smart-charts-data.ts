@@ -58,7 +58,11 @@ function anomalyData(): Record<string, unknown>[] {
 		const t = start + i * hour;
 		let cpu = 30 + 10 * Math.sin(i / 8) + (Math.random() - 0.5) * 6;
 		if (i === 47 || i === 130 || i === 175) cpu += 50; // spikes
-		rows.push({ timestamp: new Date(t).toISOString(), cpu: +cpu.toFixed(2), host: i % 3 === 0 ? 'web-01' : i % 3 === 1 ? 'web-02' : 'db-01' });
+		rows.push({
+			timestamp: new Date(t).toISOString(),
+			cpu: +cpu.toFixed(2),
+			host: i % 3 === 0 ? 'web-01' : i % 3 === 1 ? 'web-02' : 'db-01',
+		});
 	}
 	return rows;
 }
@@ -102,8 +106,27 @@ function reviewsData(): Record<string, unknown>[] {
 		for (const review of reviews[product]) {
 			const sentiment = (() => {
 				const s = review.toLowerCase();
-				const pos = ['amazing', 'loved', 'great', 'excellent', 'stellar', 'fantastic', 'love', 'beautiful', 'comfortable'].filter((w) => s.includes(w)).length;
-				const neg = ['terrible', 'awful', 'broke', 'leaks', 'unreliable', 'disappointing', 'useless', 'slow'].filter((w) => s.includes(w)).length;
+				const pos = [
+					'amazing',
+					'loved',
+					'great',
+					'excellent',
+					'stellar',
+					'fantastic',
+					'love',
+					'beautiful',
+					'comfortable',
+				].filter((w) => s.includes(w)).length;
+				const neg = [
+					'terrible',
+					'awful',
+					'broke',
+					'leaks',
+					'unreliable',
+					'disappointing',
+					'useless',
+					'slow',
+				].filter((w) => s.includes(w)).length;
 				if (pos > neg) return Math.min(5, 4 + Math.floor(Math.random() * 2));
 				if (neg > pos) return Math.max(1, 1 + Math.floor(Math.random() * 2));
 				return 3 + Math.floor(Math.random() * 2);
@@ -126,31 +149,21 @@ export const DATASETS: DatasetMeta[] = [
 		label: 'Sales time series',
 		description: '120 days of revenue with weekly seasonality and a step-up partway through.',
 		rows: salesData(),
-		suggestedQuestions: [
-			'What drove growth?',
-			'When did revenue change?',
-			'Is there seasonality?',
-		],
+		suggestedQuestions: ['What drove growth?', 'When did revenue change?', 'Is there seasonality?'],
 	},
 	{
 		id: 'clusters',
 		label: 'Clustering set',
 		description: '120 points across three species — width vs height.',
 		rows: clusteringData(),
-		suggestedQuestions: [
-			'Are there clusters?',
-			'How does width relate to height?',
-		],
+		suggestedQuestions: ['Are there clusters?', 'How does width relate to height?'],
 	},
 	{
 		id: 'anomalies',
 		label: 'Server metrics',
 		description: '200 hours of CPU load with three injected spikes across three hosts.',
 		rows: anomalyData(),
-		suggestedQuestions: [
-			'Show me the anomalies',
-			'Which host is most stable?',
-		],
+		suggestedQuestions: ['Show me the anomalies', 'Which host is most stable?'],
 	},
 	{
 		id: 'reviews',

@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Readable } from 'svelte/store';
+import { getContext } from 'svelte';
+import type { Readable } from 'svelte/store';
 
-	type Datum = Record<string, unknown>;
-	type Ctx = {
-		data: Readable<Datum[]>;
-		xGet: Readable<(d: Datum) => number>;
-		yGet: Readable<(d: Datum) => number>;
-	};
+type Datum = Record<string, unknown>;
+type Ctx = {
+	data: Readable<Datum[]>;
+	xGet: Readable<(d: Datum) => number>;
+	yGet: Readable<(d: Datum) => number>;
+};
 
-	let { fill = '#3b82f6', radius = 3 }: { fill?: string; radius?: number } = $props();
+let { fill = '#3b82f6', radius = 3 }: { fill?: string; radius?: number } = $props();
 
-	const { data, xGet, yGet } = getContext<Ctx>('LayerCake');
+const { data, xGet, yGet } = getContext<Ctx>('LayerCake');
 </script>
 
 <g>

@@ -105,7 +105,11 @@ export function buildProfile(adapted: AdaptedData): StatisticalProfile {
 		const arr = adapted.columns[name].numeric!;
 		const idx = wasm.outliers_zscore(arr, 3) as Uint32Array;
 		if (idx.length > 0) {
-			profile.anomalies.push({ column: name, indices: Array.from(idx).slice(0, 25), method: 'zscore' });
+			profile.anomalies.push({
+				column: name,
+				indices: Array.from(idx).slice(0, 25),
+				method: 'zscore',
+			});
 		}
 	}
 
@@ -119,7 +123,11 @@ export function buildProfile(adapted: AdaptedData): StatisticalProfile {
 	// Clustering: when ≥ 2 numeric columns and rows > 20
 	if (numericNames.length >= 2 && adapted.dataset.rowCount >= 20) {
 		const data: number[][] = numericNames.map((n) => Array.from(adapted.columns[n].numeric!));
-		const result = wasm.kmeans(data, Math.min(4, Math.floor(adapted.dataset.rowCount / 5)), 50) as RustClusterResult;
+		const result = wasm.kmeans(
+			data,
+			Math.min(4, Math.floor(adapted.dataset.rowCount / 5)),
+			50,
+		) as RustClusterResult;
 		profile.clusters = {
 			columns: numericNames,
 			k: result.centroids.length,
@@ -149,7 +157,9 @@ export function buildProfile(adapted: AdaptedData): StatisticalProfile {
 	}
 
 	// Text columns: keywords + sentiment
-	const textNames = Object.entries(adapted.columns).filter(([, c]) => c.type === 'text').map(([n]) => n);
+	const textNames = Object.entries(adapted.columns)
+		.filter(([, c]) => c.type === 'text')
+		.map(([n]) => n);
 	if (textNames.length > 0) {
 		profile.text = {};
 		for (const name of textNames) {
@@ -225,7 +235,10 @@ function uniqueCount(arr: Float64Array): number {
 	return set.size;
 }
 
-function classifyDistribution(s: RustSummary, h: RustHistogram): 'normal' | 'skewed' | 'bimodal' | 'uniform' | undefined {
+function classifyDistribution(
+	s: RustSummary,
+	h: RustHistogram,
+): 'normal' | 'skewed' | 'bimodal' | 'uniform' | undefined {
 	if (!h.counts.length || s.std === 0) return undefined;
 	const skew = (s.mean - s.median) / Math.max(1e-9, s.std);
 	if (Math.abs(skew) > 0.5) return 'skewed';
@@ -257,7 +270,10 @@ function profileTimeseries(
 	const sorted = new Float64Array(order.length);
 	for (let i = 0; i < order.length; i++) sorted[i] = yRaw[order[i]];
 	const trend = wasm.detect_trend(sorted) as RustTrend;
-	const seasonality = wasm.detect_seasonality(sorted, Math.min(20, Math.floor(sorted.length / 2))) as RustSeasonality;
+	const seasonality = wasm.detect_seasonality(
+		sorted,
+		Math.min(20, Math.floor(sorted.length / 2)),
+	) as RustSeasonality;
 	const changes = wasm.change_points(sorted, 0.05) as RustChangePoint[];
 	return {
 		column: yName,

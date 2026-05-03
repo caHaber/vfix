@@ -4,10 +4,10 @@ export interface ColumnView {
 	name: string;
 	type: ColumnType;
 	numeric?: Float64Array;
-	categories?: string[];     // unique values when type === 'categorical' or 'text'
-	groupKeys?: Uint32Array;   // index into categories
-	text?: string[];           // raw strings when type === 'text'
-	temporal?: Float64Array;   // ms since epoch
+	categories?: string[]; // unique values when type === 'categorical' or 'text'
+	groupKeys?: Uint32Array; // index into categories
+	text?: string[]; // raw strings when type === 'text'
+	temporal?: Float64Array; // ms since epoch
 }
 
 export interface AdaptedData {

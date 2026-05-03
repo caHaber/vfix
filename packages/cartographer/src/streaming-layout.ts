@@ -234,7 +234,21 @@ export class StreamingLayout {
 			const vx = this.vx.subarray(0, this.n);
 			const vy = this.vy.subarray(0, this.n);
 
-			const next = api.force_step(x, y, w, h, imp, vx, vy, cx, cy, REPULSION, CENTERING, DAMPING, DT);
+			const next = api.force_step(
+				x,
+				y,
+				w,
+				h,
+				imp,
+				vx,
+				vy,
+				cx,
+				cy,
+				REPULSION,
+				CENTERING,
+				DAMPING,
+				DT,
+			);
 			for (let i = 0; i < this.n; i++) {
 				this.x[i] = next[i * 4 + 0];
 				this.y[i] = next[i * 4 + 1];

@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Readable } from 'svelte/store';
-	import type { Annotation } from '../../core/types.js';
+import { getContext } from 'svelte';
+import type { Readable } from 'svelte/store';
+import type { Annotation } from '../../core/types.js';
 
-	type Datum = Record<string, unknown>;
-	type Ctx = {
-		data: Readable<Datum[]>;
-		xGet: Readable<(d: Datum) => number>;
-		yGet: Readable<(d: Datum) => number>;
-		yScale: Readable<(v: number) => number>;
-		width: Readable<number>;
-		height: Readable<number>;
-	};
+type Datum = Record<string, unknown>;
+type Ctx = {
+	data: Readable<Datum[]>;
+	xGet: Readable<(d: Datum) => number>;
+	yGet: Readable<(d: Datum) => number>;
+	yScale: Readable<(v: number) => number>;
+	width: Readable<number>;
+	height: Readable<number>;
+};
 
-	let { annotations = [] as Annotation[] }: { annotations?: Annotation[] } = $props();
+let { annotations = [] as Annotation[] }: { annotations?: Annotation[] } = $props();
 
-	const { data, xGet, yGet, yScale, width, height } = getContext<Ctx>('LayerCake');
+const { data, xGet, yGet, yScale, width, height } = getContext<Ctx>('LayerCake');
 </script>
 
 <g>

@@ -1,9 +1,4 @@
-import type {
-	ContentBlock,
-	Group,
-	PositionedBlock,
-	ResponseStructure,
-} from './types.js';
+import type { ContentBlock, Group, PositionedBlock, ResponseStructure } from './types.js';
 
 export interface SerializeOptions {
 	/** Omit blocks whose id is in this set */
@@ -21,9 +16,7 @@ export function serializeToPrompt(
 	opts: SerializeOptions = {},
 ): string {
 	const hidden = opts.hiddenIds ?? new Set<string>();
-	const positionById = opts.positions
-		? new Map(opts.positions.map((p) => [p.id, p]))
-		: null;
+	const positionById = opts.positions ? new Map(opts.positions.map((p) => [p.id, p])) : null;
 
 	const visible = structure.blocks.filter((b) => !hidden.has(b.id));
 	if (visible.length === 0) return '';
@@ -43,7 +36,10 @@ export function serializeToPrompt(
 	// Sort groups by their centroid y (if positions available), else keep insertion order.
 	if (positionById) {
 		groupOrder.sort((a, b) => {
-			return groupCentroidY(byGroup.get(a)!, positionById) - groupCentroidY(byGroup.get(b)!, positionById);
+			return (
+				groupCentroidY(byGroup.get(a)!, positionById) -
+				groupCentroidY(byGroup.get(b)!, positionById)
+			);
 		});
 		// Within each group, sort by (y, x).
 		for (const members of byGroup.values()) {
@@ -78,7 +74,12 @@ export function serializeToPrompt(
 		}
 	}
 
-	return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+	return (
+		lines
+			.join('\n')
+			.replace(/\n{3,}/g, '\n\n')
+			.trim() + '\n'
+	);
 }
 
 function groupCentroidY(members: ContentBlock[], positions: Map<string, PositionedBlock>): number {

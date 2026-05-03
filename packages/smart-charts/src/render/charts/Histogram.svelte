@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Readable } from 'svelte/store';
+import { getContext } from 'svelte';
+import type { Readable } from 'svelte/store';
 
-	type Datum = { x0: number; x1: number; count: number };
-	type Ctx = {
-		data: Readable<Datum[]>;
-		xScale: Readable<(v: number) => number>;
-		yScale: Readable<(v: number) => number>;
-		height: Readable<number>;
-	};
+type Datum = { x0: number; x1: number; count: number };
+type Ctx = {
+	data: Readable<Datum[]>;
+	xScale: Readable<(v: number) => number>;
+	yScale: Readable<(v: number) => number>;
+	height: Readable<number>;
+};
 
-	let { fill = '#3b82f6', gap = 1 }: { fill?: string; gap?: number } = $props();
+let { fill = '#3b82f6', gap = 1 }: { fill?: string; gap?: number } = $props();
 
-	const { data, xScale, yScale, height } = getContext<Ctx>('LayerCake');
+const { data, xScale, yScale, height } = getContext<Ctx>('LayerCake');
 </script>
 
 <g>

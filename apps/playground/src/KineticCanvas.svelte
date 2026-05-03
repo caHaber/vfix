@@ -1,577 +1,572 @@
 <script lang="ts">
-	import {
-		BatchedInterpolator,
-		MetricsProvider,
-		loadWasm,
-		isWasmReady,
-		getWasm,
-		getWasmDiagnostics,
-		type LayoutWord,
-		type WasmDiagnostics,
-	} from '@variable-font/core';
-	import {
-		GlyphAtlas,
-		bindWasmRasterizer,
-		initWasmFont,
-	} from '@variable-font/atlas';
-	import { AtlasRenderer } from '@variable-font/atlas-webgl';
-	import { onMount, onDestroy } from 'svelte';
-	import readmeRaw from '../../../README.md?raw';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import X from '@lucide/svelte/icons/x';
-	import Info from '@lucide/svelte/icons/info';
-	import {
-		buildGlyphLayout,
-		packInstances,
-		totalGlyphCount,
-		type GlyphLayout,
-	} from '$lib/kinetic/glyph-pipeline';
+import Info from '@lucide/svelte/icons/info';
+import { bindWasmRasterizer, GlyphAtlas, initWasmFont } from '@variable-font/atlas';
+import { AtlasRenderer } from '@variable-font/atlas-webgl';
+import {
+	BatchedInterpolator,
+	getWasm,
+	getWasmDiagnostics,
+	isWasmReady,
+	type LayoutWord,
+	loadWasm,
+	MetricsProvider,
+	type WasmDiagnostics,
+} from '@variable-font/core';
+import { onDestroy, onMount } from 'svelte';
+import { Button } from '$lib/components/ui/button';
+import { InfoButton, Modal, StatusPill } from '$lib/components/ui/info';
+import {
+	buildGlyphLayout,
+	type GlyphLayout,
+	packInstances,
+	totalGlyphCount,
+} from '$lib/kinetic/glyph-pipeline';
+import readmeRaw from '../../../README.md?raw';
 
-	function readmeToProse(md: string): string {
-		return md
-			.replace(/```[\s\S]*?```/g, ' ')
-			.replace(/`[^`]*`/g, ' ')
-			.replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-			.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-			.replace(/^>\s?/gm, '')
-			.replace(/^#{1,6}\s+/gm, '')
-			.replace(/^\s*[-*+]\s+/gm, '')
-			.replace(/[*_~]+/g, '')
-			.replace(/\s+/g, ' ')
-			.trim();
-	}
+function readmeToProse(md: string): string {
+	return md
+		.replace(/```[\s\S]*?```/g, ' ')
+		.replace(/`[^`]*`/g, ' ')
+		.replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+		.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+		.replace(/^>\s?/gm, '')
+		.replace(/^#{1,6}\s+/gm, '')
+		.replace(/^\s*[-*+]\s+/gm, '')
+		.replace(/[*_~]+/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
 
-	const TEXT = readmeToProse(readmeRaw);
-	const FONT_FAMILY = 'Recursive';
-	const FONT_SIZE = 22;
-	const LINE_HEIGHT = 32;
+const TEXT = readmeToProse(readmeRaw);
+const FONT_FAMILY = 'Recursive';
+const FONT_SIZE = 22;
+const LINE_HEIGHT = 32;
 
-	const AXES_PER_WORD = 5;
-	const WGHT_MIN = 300;
-	const WGHT_RANGE = 700;
-	const SLNT_RANGE = 15;
-	const REST_TARGETS: readonly number[] = [WGHT_MIN, 0, 0, 0, 0];
-	const PEAK_TARGETS: readonly number[] = [WGHT_MIN + WGHT_RANGE, 1, -SLNT_RANGE, 0, 1];
+const AXES_PER_WORD = 5;
+const WGHT_MIN = 300;
+const WGHT_RANGE = 700;
+const SLNT_RANGE = 15;
+const REST_TARGETS: readonly number[] = [WGHT_MIN, 0, 0, 0, 0];
+const PEAK_TARGETS: readonly number[] = [WGHT_MIN + WGHT_RANGE, 1, -SLNT_RANGE, 0, 1];
 
-	const RADIUS = 320;
+const RADIUS = 320;
 
-	const FONT_URL = '/fonts/Recursive/Recursive_VF.ttf';
+const FONT_URL = '/fonts/Recursive/Recursive_VF.ttf';
 
-	const metrics = new MetricsProvider({
-		fontFamily: FONT_FAMILY,
-		fontSize: FONT_SIZE,
-		lineHeight: LINE_HEIGHT,
-	});
+const metrics = new MetricsProvider({
+	fontFamily: FONT_FAMILY,
+	fontSize: FONT_SIZE,
+	lineHeight: LINE_HEIGHT,
+});
 
-	type LineGroup = { lineIndex: number; y: number; words: { word: LayoutWord; idx: number }[] };
+type LineGroup = { lineIndex: number; y: number; words: { word: LayoutWord; idx: number }[] };
 
-	let words = $state<LayoutWord[]>([]);
-	let lineGroups = $state<LineGroup[]>([]);
-	let totalHeight = $state(0);
-	let container: HTMLElement;
-	let canvasEl: HTMLCanvasElement;
-	let containerWidth = $state(0);
+let words = $state<LayoutWord[]>([]);
+let lineGroups = $state<LineGroup[]>([]);
+let totalHeight = $state(0);
+let container: HTMLElement;
+let canvasEl: HTMLCanvasElement;
+let containerWidth = $state(0);
 
-	let batched: BatchedInterpolator | null = null;
-	let centers: Float32Array | null = null;
-	let containerRect: DOMRect | null = null;
-	// Reactive: the debug pill and modal read atlas fields like usedBytes/dpr.
-	let atlas = $state<GlyphAtlas | null>(null);
-	let renderer: AtlasRenderer | null = null;
-	let glyphLayout: GlyphLayout | null = null;
-	let lastAxes: Float32Array | null = null;
-	let frameRaf: number | null = null;
+let batched: BatchedInterpolator | null = null;
+let centers: Float32Array | null = null;
+let containerRect: DOMRect | null = null;
+// Reactive: the debug pill and modal read atlas fields like usedBytes/dpr.
+let atlas = $state<GlyphAtlas | null>(null);
+let renderer: AtlasRenderer | null = null;
+let glyphLayout: GlyphLayout | null = null;
+let lastAxes: Float32Array | null = null;
+let frameRaf: number | null = null;
 
-	let unsub: (() => void) | null = null;
+let unsub: (() => void) | null = null;
 
-	let wasmDiag = $state<WasmDiagnostics>(getWasmDiagnostics());
-	let showWasmDebug = $state<boolean>(false);
-	let showAbout = $state<boolean>(false);
-	let fontLoadState = $state<'pending' | 'ok' | 'err'>('pending');
-	let fontLoadError = $state<string | null>(null);
-	let atlasHits = $state(0);
-	let atlasMisses = $state(0);
-	let atlasDeferred = $state(0);
-	let atlasEntries = $state(0);
+let wasmDiag = $state<WasmDiagnostics>(getWasmDiagnostics());
+let showWasmDebug = $state<boolean>(false);
+let showAbout = $state<boolean>(false);
+let fontLoadState = $state<'pending' | 'ok' | 'err'>('pending');
+let fontLoadError = $state<string | null>(null);
+let atlasHits = $state(0);
+let atlasMisses = $state(0);
+let atlasDeferred = $state(0);
+let atlasEntries = $state(0);
 
-	const wasmEnv = {
-		hasWebAssembly: typeof WebAssembly !== 'undefined',
-		userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a',
-		crossOriginIsolated:
-			typeof globalThis !== 'undefined' && 'crossOriginIsolated' in globalThis
-				? ((globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated ?? false)
-				: false,
-	};
+const wasmEnv = {
+	hasWebAssembly: typeof WebAssembly !== 'undefined',
+	userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a',
+	crossOriginIsolated:
+		typeof globalThis !== 'undefined' && 'crossOriginIsolated' in globalThis
+			? ((globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated ?? false)
+			: false,
+};
 
-	function refreshWasmDiag() {
-		wasmDiag = getWasmDiagnostics();
-	}
+function refreshWasmDiag() {
+	wasmDiag = getWasmDiagnostics();
+}
 
-	let wasmStatusLabel = $derived.by(() => {
-		if (wasmDiag.loading) return 'Loading…';
-		if (!wasmDiag.loaded) return 'Idle';
-		if (wasmDiag.initError) return 'Error';
-		if (wasmDiag.backend === 'wasm') return 'WASM active';
-		if (wasmDiag.backend === 'js-stub') return 'JS fallback';
-		return 'Loaded';
-	});
+let wasmStatusLabel = $derived.by(() => {
+	if (wasmDiag.loading) return 'Loading…';
+	if (!wasmDiag.loaded) return 'Idle';
+	if (wasmDiag.initError) return 'Error';
+	if (wasmDiag.backend === 'wasm') return 'WASM active';
+	if (wasmDiag.backend === 'js-stub') return 'JS fallback';
+	return 'Loaded';
+});
 
-	let wasmStatusTone = $derived.by(() => {
-		if (wasmDiag.initError || fontLoadState === 'err') return 'err';
-		if (wasmDiag.loaded && wasmDiag.backend === 'wasm' && fontLoadState === 'ok') return 'ok';
-		if (wasmDiag.loaded && wasmDiag.backend === 'js-stub') return 'warn';
-		if (wasmDiag.loading || fontLoadState === 'pending') return 'pending';
-		return 'idle';
-	});
+let wasmStatusTone = $derived.by(() => {
+	if (wasmDiag.initError || fontLoadState === 'err') return 'err';
+	if (wasmDiag.loaded && wasmDiag.backend === 'wasm' && fontLoadState === 'ok') return 'ok';
+	if (wasmDiag.loaded && wasmDiag.backend === 'js-stub') return 'warn';
+	if (wasmDiag.loading || fontLoadState === 'pending') return 'pending';
+	return 'idle';
+});
 
-	let wordCount = $derived(words.length);
+let wordCount = $derived(words.length);
 
-	function formatBytes(n: number | null): string {
-		if (n == null) return '—';
-		if (n < 1024) return `${n} B`;
-		if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KiB`;
-		return `${(n / 1024 / 1024).toFixed(2)} MiB`;
-	}
+function formatBytes(n: number | null): string {
+	if (n == null) return '—';
+	if (n < 1024) return `${n} B`;
+	if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KiB`;
+	return `${(n / 1024 / 1024).toFixed(2)} MiB`;
+}
 
-	async function bootstrap() {
-		try {
-			const wasm = await loadWasm();
-			refreshWasmDiag();
+async function bootstrap() {
+	try {
+		const wasm = await loadWasm();
+		refreshWasmDiag();
 
-			const fontResp = await fetch(FONT_URL);
-			if (!fontResp.ok) throw new Error(`Font fetch failed: ${fontResp.status}`);
-			const fontBytes = new Uint8Array(await fontResp.arrayBuffer());
-			const ok = initWasmFont(wasm, fontBytes);
-			if (!ok) throw new Error('init_font rejected the supplied bytes');
-			fontLoadState = 'ok';
+		const fontResp = await fetch(FONT_URL);
+		if (!fontResp.ok) throw new Error(`Font fetch failed: ${fontResp.status}`);
+		const fontBytes = new Uint8Array(await fontResp.arrayBuffer());
+		const ok = initWasmFont(wasm, fontBytes);
+		if (!ok) throw new Error('init_font rejected the supplied bytes');
+		fontLoadState = 'ok';
 
-			const dpr = window.devicePixelRatio || 1;
-			atlas = new GlyphAtlas({
-				rasterize: bindWasmRasterizer(wasm),
-				sizePx: FONT_SIZE,
-				dpr,
-			});
-			renderer = new AtlasRenderer({ canvas: canvasEl, atlas });
-			renderer.resize(containerWidth, totalHeight, dpr);
-
-			doLayout(containerWidth);
-		} catch (err) {
-			fontLoadError = err instanceof Error ? err.message : String(err);
-			fontLoadState = 'err';
-			refreshWasmDiag();
-		}
-	}
-
-	function buildInitialAndStiffness(words: LayoutWord[]): {
-		initial: Float32Array;
-		stiffness: Float32Array;
-		centers: Float32Array;
-	} {
-		const n = words.length;
-		const initial = new Float32Array(n * AXES_PER_WORD);
-		const stiffness = new Float32Array(n);
-		const c = new Float32Array(n * 2);
-		const halfLine = LINE_HEIGHT / 2;
-		for (let i = 0; i < n; i++) {
-			initial[i * AXES_PER_WORD + 0] = WGHT_MIN;
-			stiffness[i] = 0.12 + (i % 13) * 0.012;
-			const w = words[i];
-			c[i * 2 + 0] = w.x + w.width / 2;
-			c[i * 2 + 1] = w.y + halfLine;
-		}
-		return { initial, stiffness, centers: c };
-	}
-
-	function readForegroundColor(): [number, number, number, number] {
-		// Read the CSS foreground once per layout. Cheaper than per-frame.
-		if (typeof getComputedStyle === 'undefined' || !container) return [0, 0, 0, 1];
-		const cssColor = getComputedStyle(container).color;
-		// rgb(r, g, b) or rgba(r, g, b, a)
-		const m = cssColor.match(/rgba?\(([^)]+)\)/);
-		if (!m) return [0, 0, 0, 1];
-		const parts = m[1].split(',').map((p) => Number.parseFloat(p));
-		const r = (parts[0] ?? 0) / 255;
-		const g = (parts[1] ?? 0) / 255;
-		const b = (parts[2] ?? 0) / 255;
-		const a = parts[3] ?? 1;
-		return [r, g, b, a];
-	}
-
-	let foregroundColor: [number, number, number, number] = [0, 0, 0, 1];
-
-	function applyCurrent(cur: Float32Array) {
-		// Keep the latest axes Float32Array reference so the RAF loop has
-		// the freshest snapshot. Don't draw here directly — we coalesce all
-		// per-frame work into a single requestAnimationFrame to avoid double
-		// draws when subscribers fire mid-frame.
-		lastAxes = cur;
-		if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
-	}
-
-	function drawFrame() {
-		frameRaf = null;
-		if (!renderer || !atlas || !glyphLayout || !lastAxes) return;
-
-		atlas.tick();
-
-		const scrollY = window.scrollY || 0;
-		const viewportH = window.innerHeight || 0;
-		const containerTop = container ? container.getBoundingClientRect().top + scrollY : 0;
-		const cullTop = scrollY - containerTop - LINE_HEIGHT * 2;
-		const cullBottom = scrollY + viewportH - containerTop + LINE_HEIGHT * 2;
-
-		const requiredCapacity = totalGlyphCount(glyphLayout);
-		const ensured = renderer.ensureCapacity(requiredCapacity);
-
-		const count = packInstances({
-			words,
-			layout: glyphLayout,
-			axesFlat: lastAxes,
-			axesPerWord: AXES_PER_WORD,
-			atlas,
-			instanceCpu: ensured,
-			color: foregroundColor,
-			cullTop,
-			cullBottom,
-			lineHeight: LINE_HEIGHT,
-			dpr: atlas.dpr,
-		});
-
-		renderer.draw(count);
-
-		atlasHits = atlas.hits;
-		atlasMisses = atlas.misses;
-		atlasDeferred = atlas.deferred;
-		atlasEntries = atlas.entryCount;
-
-		maybeScheduleAtlasPrune();
-	}
-
-	let prunePending = false;
-	function maybeScheduleAtlasPrune() {
-		if (prunePending || !atlas) return;
-		if (!atlas.shouldPrune()) return;
-		prunePending = true;
-		const run = () => {
-			prunePending = false;
-			if (!atlas) return;
-			atlas.rebuild(240);
-		};
-		// requestIdleCallback isn't on Safari; fall back to a chunky timeout
-		// so the rebuild doesn't run during active interaction.
-		const w = window as Window & {
-			requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-		};
-		if (typeof w.requestIdleCallback === 'function') {
-			w.requestIdleCallback(run, { timeout: 4000 });
-		} else {
-			setTimeout(run, 1500);
-		}
-	}
-
-	function groupByLine(words: LayoutWord[]): LineGroup[] {
-		const groups: LineGroup[] = [];
-		let prev = -1;
-		for (let i = 0; i < words.length; i++) {
-			const w = words[i];
-			if (w.lineIndex !== prev) {
-				groups.push({ lineIndex: w.lineIndex, y: w.y, words: [] });
-				prev = w.lineIndex;
-			}
-			groups[groups.length - 1].words.push({ word: w, idx: i });
-		}
-		return groups;
-	}
-
-	function doLayout(_widthHint: number) {
-		// Use the canvas's actual displayed width as the layout source.
-		// The parent .kinetic-wrap has padding, so its clientWidth is wider
-		// than the canvas/field by 2× the horizontal padding; laying out
-		// against the wrap's width would put right-edge words past the
-		// canvas right boundary and they'd get clipped by the GL viewport.
-		const layoutWidth = canvasEl?.clientWidth ?? _widthHint;
-		if (layoutWidth <= 0) return;
-		if (!isWasmReady()) return;
-		const wasm = getWasm();
-		const result = metrics.layout(TEXT, layoutWidth);
-		const newCount = result.words.length;
-
-		if (unsub) {
-			unsub();
-			unsub = null;
-		}
-		if (batched) {
-			batched.destroy();
-			batched = null;
-		}
-		cancelRipple();
-
-		const { initial, stiffness, centers: c } = buildInitialAndStiffness(result.words);
-		centers = c;
-		words = result.words;
-		lineGroups = groupByLine(result.words);
-		totalHeight = result.totalHeight;
-		foregroundColor = readForegroundColor();
-
-		glyphLayout = buildGlyphLayout(result.words, wasm, FONT_SIZE);
-
-		// Prime the atlas at rest axes so the first paint after mount shows
-		// the full text instead of empty fallbacks. Outside the per-frame
-		// budget — this is a deliberate one-shot at layout time.
-		if (atlas) {
-			atlas.primeText(TEXT, {
-				wght: WGHT_MIN,
-				casl: 0,
-				slnt: 0,
-				mono: 0,
-				crsv: 0,
-			});
-		}
-
-		batched = new BatchedInterpolator({
-			groups: newCount,
-			axesPerGroup: AXES_PER_WORD,
-			initial,
-			stiffness,
-			epsilon: 0.5,
-			curveType: 2,
-		});
-
-		unsub = batched.subscribe((cur) => applyCurrent(cur));
-
-		// Defer the canvas resize to the next frame so Svelte commits the
-		// new totalHeight inline style first; sizing the canvas before the
-		// CSS lays it out reads the previous size.
-		requestAnimationFrame(syncCanvasSize);
-
-		containerRect = container.getBoundingClientRect();
-		// Schedule an initial draw even if interpolator hasn't ticked yet.
-		if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
-	}
-
-	let resizeObserver: ResizeObserver;
-	let canvasResizeObserver: ResizeObserver;
-
-	function onScroll() {
-		if (container) containerRect = container.getBoundingClientRect();
-		if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
-	}
-
-	function syncCanvasSize() {
-		if (!renderer || !canvasEl) return;
-		const dpr = atlas?.dpr ?? window.devicePixelRatio ?? 1;
-		// Authoritative canvas size = whatever CSS actually rendered. The
-		// drawing buffer must match this exactly or the GL output gets
-		// stretched/squished by the browser when blitting to the page.
-		const w = canvasEl.clientWidth;
-		const h = canvasEl.clientHeight;
-		if (w <= 0 || h <= 0) return;
-		renderer.resize(w, h, dpr);
-		if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
-	}
-
-	let dprMql: MediaQueryList | null = null;
-	function onDprChange() {
-		if (!atlas) return;
 		const dpr = window.devicePixelRatio || 1;
-		if (dpr === atlas.dpr) return;
-		// Atlas was rasterized at old dpr; rebuild at the new one. Cheaper to
-		// nuke and let it repopulate than to scale existing entries.
 		atlas = new GlyphAtlas({
-			rasterize: bindWasmRasterizer(getWasm()),
+			rasterize: bindWasmRasterizer(wasm),
 			sizePx: FONT_SIZE,
 			dpr,
 		});
-		if (renderer) {
-			renderer.destroy();
-			renderer = new AtlasRenderer({ canvas: canvasEl, atlas });
-			renderer.resize(containerWidth, totalHeight, dpr);
-		}
-		if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
+		renderer = new AtlasRenderer({ canvas: canvasEl, atlas });
+		renderer.resize(containerWidth, totalHeight, dpr);
+
+		doLayout(containerWidth);
+	} catch (err) {
+		fontLoadError = err instanceof Error ? err.message : String(err);
+		fontLoadState = 'err';
+		refreshWasmDiag();
 	}
+}
 
-	onMount(() => {
-		containerWidth = container.clientWidth;
-		bootstrap();
+function buildInitialAndStiffness(words: LayoutWord[]): {
+	initial: Float32Array;
+	stiffness: Float32Array;
+	centers: Float32Array;
+} {
+	const n = words.length;
+	const initial = new Float32Array(n * AXES_PER_WORD);
+	const stiffness = new Float32Array(n);
+	const c = new Float32Array(n * 2);
+	const halfLine = LINE_HEIGHT / 2;
+	for (let i = 0; i < n; i++) {
+		initial[i * AXES_PER_WORD + 0] = WGHT_MIN;
+		stiffness[i] = 0.12 + (i % 13) * 0.012;
+		const w = words[i];
+		c[i * 2 + 0] = w.x + w.width / 2;
+		c[i * 2 + 1] = w.y + halfLine;
+	}
+	return { initial, stiffness, centers: c };
+}
 
-		resizeObserver = new ResizeObserver((entries) => {
-			const w = entries[0].contentBoxSize[0].inlineSize;
-			if (Math.abs(w - containerWidth) > 2) {
-				containerWidth = w;
-				doLayout(w);
-			} else {
-				containerRect = container.getBoundingClientRect();
-			}
+function readForegroundColor(): [number, number, number, number] {
+	// Read the CSS foreground once per layout. Cheaper than per-frame.
+	if (typeof getComputedStyle === 'undefined' || !container) return [0, 0, 0, 1];
+	const cssColor = getComputedStyle(container).color;
+	// rgb(r, g, b) or rgba(r, g, b, a)
+	const m = cssColor.match(/rgba?\(([^)]+)\)/);
+	if (!m) return [0, 0, 0, 1];
+	const parts = m[1].split(',').map((p) => Number.parseFloat(p));
+	const r = (parts[0] ?? 0) / 255;
+	const g = (parts[1] ?? 0) / 255;
+	const b = (parts[2] ?? 0) / 255;
+	const a = parts[3] ?? 1;
+	return [r, g, b, a];
+}
+
+let foregroundColor: [number, number, number, number] = [0, 0, 0, 1];
+
+function applyCurrent(cur: Float32Array) {
+	// Keep the latest axes Float32Array reference so the RAF loop has
+	// the freshest snapshot. Don't draw here directly — we coalesce all
+	// per-frame work into a single requestAnimationFrame to avoid double
+	// draws when subscribers fire mid-frame.
+	lastAxes = cur;
+	if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
+}
+
+function drawFrame() {
+	frameRaf = null;
+	if (!renderer || !atlas || !glyphLayout || !lastAxes) return;
+
+	atlas.tick();
+
+	const scrollY = window.scrollY || 0;
+	const viewportH = window.innerHeight || 0;
+	const containerTop = container ? container.getBoundingClientRect().top + scrollY : 0;
+	const cullTop = scrollY - containerTop - LINE_HEIGHT * 2;
+	const cullBottom = scrollY + viewportH - containerTop + LINE_HEIGHT * 2;
+
+	const requiredCapacity = totalGlyphCount(glyphLayout);
+	const ensured = renderer.ensureCapacity(requiredCapacity);
+
+	const count = packInstances({
+		words,
+		layout: glyphLayout,
+		axesFlat: lastAxes,
+		axesPerWord: AXES_PER_WORD,
+		atlas,
+		instanceCpu: ensured,
+		color: foregroundColor,
+		cullTop,
+		cullBottom,
+		lineHeight: LINE_HEIGHT,
+		dpr: atlas.dpr,
+	});
+
+	renderer.draw(count);
+
+	atlasHits = atlas.hits;
+	atlasMisses = atlas.misses;
+	atlasDeferred = atlas.deferred;
+	atlasEntries = atlas.entryCount;
+
+	maybeScheduleAtlasPrune();
+}
+
+let prunePending = false;
+function maybeScheduleAtlasPrune() {
+	if (prunePending || !atlas) return;
+	if (!atlas.shouldPrune()) return;
+	prunePending = true;
+	const run = () => {
+		prunePending = false;
+		if (!atlas) return;
+		atlas.rebuild(240);
+	};
+	// requestIdleCallback isn't on Safari; fall back to a chunky timeout
+	// so the rebuild doesn't run during active interaction.
+	const w = window as Window & {
+		requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+	};
+	if (typeof w.requestIdleCallback === 'function') {
+		w.requestIdleCallback(run, { timeout: 4000 });
+	} else {
+		setTimeout(run, 1500);
+	}
+}
+
+function groupByLine(words: LayoutWord[]): LineGroup[] {
+	const groups: LineGroup[] = [];
+	let prev = -1;
+	for (let i = 0; i < words.length; i++) {
+		const w = words[i];
+		if (w.lineIndex !== prev) {
+			groups.push({ lineIndex: w.lineIndex, y: w.y, words: [] });
+			prev = w.lineIndex;
+		}
+		groups[groups.length - 1].words.push({ word: w, idx: i });
+	}
+	return groups;
+}
+
+function doLayout(_widthHint: number) {
+	// Use the canvas's actual displayed width as the layout source.
+	// The parent .kinetic-wrap has padding, so its clientWidth is wider
+	// than the canvas/field by 2× the horizontal padding; laying out
+	// against the wrap's width would put right-edge words past the
+	// canvas right boundary and they'd get clipped by the GL viewport.
+	const layoutWidth = canvasEl?.clientWidth ?? _widthHint;
+	if (layoutWidth <= 0) return;
+	if (!isWasmReady()) return;
+	const wasm = getWasm();
+	const result = metrics.layout(TEXT, layoutWidth);
+	const newCount = result.words.length;
+
+	if (unsub) {
+		unsub();
+		unsub = null;
+	}
+	if (batched) {
+		batched.destroy();
+		batched = null;
+	}
+	cancelRipple();
+
+	const { initial, stiffness, centers: c } = buildInitialAndStiffness(result.words);
+	centers = c;
+	words = result.words;
+	lineGroups = groupByLine(result.words);
+	totalHeight = result.totalHeight;
+	foregroundColor = readForegroundColor();
+
+	glyphLayout = buildGlyphLayout(result.words, wasm, FONT_SIZE);
+
+	// Prime the atlas at rest axes so the first paint after mount shows
+	// the full text instead of empty fallbacks. Outside the per-frame
+	// budget — this is a deliberate one-shot at layout time.
+	if (atlas) {
+		atlas.primeText(TEXT, {
+			wght: WGHT_MIN,
+			casl: 0,
+			slnt: 0,
+			mono: 0,
+			crsv: 0,
 		});
-		resizeObserver.observe(container);
-
-		canvasResizeObserver = new ResizeObserver(() => syncCanvasSize());
-		if (canvasEl) canvasResizeObserver.observe(canvasEl);
-
-		window.addEventListener('scroll', onScroll, { passive: true });
-		window.addEventListener('resize', onScroll, { passive: true });
-
-		if (typeof window.matchMedia === 'function') {
-			dprMql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
-			dprMql.addEventListener('change', onDprChange);
-		}
-	});
-
-	onDestroy(() => {
-		resizeObserver?.disconnect();
-		canvasResizeObserver?.disconnect();
-		window.removeEventListener('scroll', onScroll);
-		window.removeEventListener('resize', onScroll);
-		dprMql?.removeEventListener('change', onDprChange);
-		if (frameRaf !== null) cancelAnimationFrame(frameRaf);
-		cancelRipple();
-		unsub?.();
-		batched?.destroy();
-		renderer?.destroy();
-	});
-
-	function ensureRect(): DOMRect {
-		if (containerRect) return containerRect;
-		containerRect = container.getBoundingClientRect();
-		return containerRect;
 	}
 
-	function computeRadialTargets(localX: number, localY: number): Float32Array {
-		if (!centers) return new Float32Array(0);
-		if (isWasmReady()) {
-			const wasm = getWasm();
-			const half = centers.length / 2;
-			const cx = new Float32Array(half);
-			const cy = new Float32Array(half);
-			for (let i = 0; i < half; i++) {
-				cx[i] = centers[i * 2 + 0];
-				cy[i] = centers[i * 2 + 1];
+	batched = new BatchedInterpolator({
+		groups: newCount,
+		axesPerGroup: AXES_PER_WORD,
+		initial,
+		stiffness,
+		epsilon: 0.5,
+		curveType: 2,
+	});
+
+	unsub = batched.subscribe((cur) => applyCurrent(cur));
+
+	// Defer the canvas resize to the next frame so Svelte commits the
+	// new totalHeight inline style first; sizing the canvas before the
+	// CSS lays it out reads the previous size.
+	requestAnimationFrame(syncCanvasSize);
+
+	containerRect = container.getBoundingClientRect();
+	// Schedule an initial draw even if interpolator hasn't ticked yet.
+	if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
+}
+
+let resizeObserver: ResizeObserver;
+let canvasResizeObserver: ResizeObserver;
+
+function onScroll() {
+	if (container) containerRect = container.getBoundingClientRect();
+	if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
+}
+
+function syncCanvasSize() {
+	if (!renderer || !canvasEl) return;
+	const dpr = atlas?.dpr ?? window.devicePixelRatio ?? 1;
+	// Authoritative canvas size = whatever CSS actually rendered. The
+	// drawing buffer must match this exactly or the GL output gets
+	// stretched/squished by the browser when blitting to the page.
+	const w = canvasEl.clientWidth;
+	const h = canvasEl.clientHeight;
+	if (w <= 0 || h <= 0) return;
+	renderer.resize(w, h, dpr);
+	if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
+}
+
+let dprMql: MediaQueryList | null = null;
+function onDprChange() {
+	if (!atlas) return;
+	const dpr = window.devicePixelRatio || 1;
+	if (dpr === atlas.dpr) return;
+	// Atlas was rasterized at old dpr; rebuild at the new one. Cheaper to
+	// nuke and let it repopulate than to scale existing entries.
+	atlas = new GlyphAtlas({
+		rasterize: bindWasmRasterizer(getWasm()),
+		sizePx: FONT_SIZE,
+		dpr,
+	});
+	if (renderer) {
+		renderer.destroy();
+		renderer = new AtlasRenderer({ canvas: canvasEl, atlas });
+		renderer.resize(containerWidth, totalHeight, dpr);
+	}
+	if (frameRaf === null) frameRaf = requestAnimationFrame(drawFrame);
+}
+
+onMount(() => {
+	containerWidth = container.clientWidth;
+	bootstrap();
+
+	resizeObserver = new ResizeObserver((entries) => {
+		const w = entries[0].contentBoxSize[0].inlineSize;
+		if (Math.abs(w - containerWidth) > 2) {
+			containerWidth = w;
+			doLayout(w);
+		} else {
+			containerRect = container.getBoundingClientRect();
+		}
+	});
+	resizeObserver.observe(container);
+
+	canvasResizeObserver = new ResizeObserver(() => syncCanvasSize());
+	if (canvasEl) canvasResizeObserver.observe(canvasEl);
+
+	window.addEventListener('scroll', onScroll, { passive: true });
+	window.addEventListener('resize', onScroll, { passive: true });
+
+	if (typeof window.matchMedia === 'function') {
+		dprMql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+		dprMql.addEventListener('change', onDprChange);
+	}
+});
+
+onDestroy(() => {
+	resizeObserver?.disconnect();
+	canvasResizeObserver?.disconnect();
+	window.removeEventListener('scroll', onScroll);
+	window.removeEventListener('resize', onScroll);
+	dprMql?.removeEventListener('change', onDprChange);
+	if (frameRaf !== null) cancelAnimationFrame(frameRaf);
+	cancelRipple();
+	unsub?.();
+	batched?.destroy();
+	renderer?.destroy();
+});
+
+function ensureRect(): DOMRect {
+	if (containerRect) return containerRect;
+	containerRect = container.getBoundingClientRect();
+	return containerRect;
+}
+
+function computeRadialTargets(localX: number, localY: number): Float32Array {
+	if (!centers) return new Float32Array(0);
+	if (isWasmReady()) {
+		const wasm = getWasm();
+		const half = centers.length / 2;
+		const cx = new Float32Array(half);
+		const cy = new Float32Array(half);
+		for (let i = 0; i < half; i++) {
+			cx[i] = centers[i * 2 + 0];
+			cy[i] = centers[i * 2 + 1];
+		}
+		return wasm.compute_radial_targets(
+			cx,
+			cy,
+			localX,
+			localY,
+			RADIUS,
+			WGHT_MIN,
+			WGHT_RANGE,
+			SLNT_RANGE,
+		) as Float32Array;
+	}
+	const n = centers.length / 2;
+	const out = new Float32Array(n * AXES_PER_WORD);
+	const invR = 1 / RADIUS;
+	for (let i = 0; i < n; i++) {
+		const dx = localX - centers[i * 2 + 0];
+		const dy = localY - centers[i * 2 + 1];
+		const dist = Math.sqrt(dx * dx + dy * dy);
+		const raw = Math.max(0, 1 - dist * invR);
+		const p = raw * raw * (3 - 2 * raw);
+		const o = i * AXES_PER_WORD;
+		out[o + 0] = WGHT_MIN + p * WGHT_RANGE;
+		out[o + 1] = raw * raw;
+		out[o + 2] = -p * SLNT_RANGE;
+		out[o + 3] = Math.max(0, raw - 0.5) * 2;
+		out[o + 4] = p;
+	}
+	return out;
+}
+
+function onmousemove(e: MouseEvent) {
+	if (!batched || !centers) return;
+	const rect = ensureRect();
+	const localX = e.clientX - rect.left;
+	const localY = e.clientY - rect.top;
+	const targets = computeRadialTargets(localX, localY);
+	batched.setTargets(targets);
+}
+
+function onmouseleave() {
+	if (!batched) return;
+	const n = batched.groups;
+	const rest = new Float32Array(n * AXES_PER_WORD);
+	for (let i = 0; i < n; i++) {
+		rest[i * AXES_PER_WORD + 0] = WGHT_MIN;
+	}
+	batched.setTargets(rest);
+}
+
+let rippleRaf: number | null = null;
+let rippleState: {
+	distances: Float32Array;
+	peaked: Uint8Array;
+	returned: Uint8Array;
+	startMs: number;
+} | null = null;
+const PEAK_SPEED_MS_PER_PX = 0.5;
+const RETURN_DELAY_MS = 200;
+const RETURN_TAIL_MS_PER_PX = 0.15;
+
+function cancelRipple() {
+	if (rippleRaf !== null) {
+		cancelAnimationFrame(rippleRaf);
+		rippleRaf = null;
+	}
+	rippleState = null;
+}
+
+function rippleTick() {
+	rippleRaf = null;
+	if (!rippleState || !batched) return;
+	const elapsed = performance.now() - rippleState.startMs;
+	let outstanding = false;
+	const { distances, peaked, returned } = rippleState;
+	const n = distances.length;
+	for (let i = 0; i < n; i++) {
+		const d = distances[i];
+		const peakAt = d * PEAK_SPEED_MS_PER_PX;
+		const returnAt = peakAt + RETURN_DELAY_MS + d * RETURN_TAIL_MS_PER_PX;
+		if (!peaked[i]) {
+			if (elapsed >= peakAt) {
+				batched.setTargetGroup(i, PEAK_TARGETS);
+				peaked[i] = 1;
+			} else {
+				outstanding = true;
 			}
-			return wasm.compute_radial_targets(
-				cx,
-				cy,
-				localX,
-				localY,
-				RADIUS,
-				WGHT_MIN,
-				WGHT_RANGE,
-				SLNT_RANGE,
-			) as Float32Array;
 		}
-		const n = centers.length / 2;
-		const out = new Float32Array(n * AXES_PER_WORD);
-		const invR = 1 / RADIUS;
-		for (let i = 0; i < n; i++) {
-			const dx = localX - centers[i * 2 + 0];
-			const dy = localY - centers[i * 2 + 1];
-			const dist = Math.sqrt(dx * dx + dy * dy);
-			const raw = Math.max(0, 1 - dist * invR);
-			const p = raw * raw * (3 - 2 * raw);
-			const o = i * AXES_PER_WORD;
-			out[o + 0] = WGHT_MIN + p * WGHT_RANGE;
-			out[o + 1] = raw * raw;
-			out[o + 2] = -p * SLNT_RANGE;
-			out[o + 3] = Math.max(0, raw - 0.5) * 2;
-			out[o + 4] = p;
+		if (peaked[i] && !returned[i]) {
+			if (elapsed >= returnAt) {
+				batched.setTargetGroup(i, REST_TARGETS);
+				returned[i] = 1;
+			} else {
+				outstanding = true;
+			}
 		}
-		return out;
 	}
-
-	function onmousemove(e: MouseEvent) {
-		if (!batched || !centers) return;
-		const rect = ensureRect();
-		const localX = e.clientX - rect.left;
-		const localY = e.clientY - rect.top;
-		const targets = computeRadialTargets(localX, localY);
-		batched.setTargets(targets);
-	}
-
-	function onmouseleave() {
-		if (!batched) return;
-		const n = batched.groups;
-		const rest = new Float32Array(n * AXES_PER_WORD);
-		for (let i = 0; i < n; i++) {
-			rest[i * AXES_PER_WORD + 0] = WGHT_MIN;
-		}
-		batched.setTargets(rest);
-	}
-
-	let rippleRaf: number | null = null;
-	let rippleState: {
-		distances: Float32Array;
-		peaked: Uint8Array;
-		returned: Uint8Array;
-		startMs: number;
-	} | null = null;
-	const PEAK_SPEED_MS_PER_PX = 0.5;
-	const RETURN_DELAY_MS = 200;
-	const RETURN_TAIL_MS_PER_PX = 0.15;
-
-	function cancelRipple() {
-		if (rippleRaf !== null) {
-			cancelAnimationFrame(rippleRaf);
-			rippleRaf = null;
-		}
+	if (outstanding) {
+		rippleRaf = requestAnimationFrame(rippleTick);
+	} else {
 		rippleState = null;
 	}
+}
 
-	function rippleTick() {
-		rippleRaf = null;
-		if (!rippleState || !batched) return;
-		const elapsed = performance.now() - rippleState.startMs;
-		let outstanding = false;
-		const { distances, peaked, returned } = rippleState;
-		const n = distances.length;
-		for (let i = 0; i < n; i++) {
-			const d = distances[i];
-			const peakAt = d * PEAK_SPEED_MS_PER_PX;
-			const returnAt = peakAt + RETURN_DELAY_MS + d * RETURN_TAIL_MS_PER_PX;
-			if (!peaked[i]) {
-				if (elapsed >= peakAt) {
-					batched.setTargetGroup(i, PEAK_TARGETS);
-					peaked[i] = 1;
-				} else {
-					outstanding = true;
-				}
-			}
-			if (peaked[i] && !returned[i]) {
-				if (elapsed >= returnAt) {
-					batched.setTargetGroup(i, REST_TARGETS);
-					returned[i] = 1;
-				} else {
-					outstanding = true;
-				}
-			}
-		}
-		if (outstanding) {
-			rippleRaf = requestAnimationFrame(rippleTick);
-		} else {
-			rippleState = null;
-		}
+function onclick(e: MouseEvent) {
+	if (!batched || !centers) return;
+	const rect = ensureRect();
+	const localX = e.clientX - rect.left;
+	const localY = e.clientY - rect.top;
+	const n = centers.length / 2;
+	const distances = new Float32Array(n);
+	for (let i = 0; i < n; i++) {
+		const dx = localX - centers[i * 2 + 0];
+		const dy = localY - centers[i * 2 + 1];
+		distances[i] = Math.hypot(dx, dy);
 	}
-
-	function onclick(e: MouseEvent) {
-		if (!batched || !centers) return;
-		const rect = ensureRect();
-		const localX = e.clientX - rect.left;
-		const localY = e.clientY - rect.top;
-		const n = centers.length / 2;
-		const distances = new Float32Array(n);
-		for (let i = 0; i < n; i++) {
-			const dx = localX - centers[i * 2 + 0];
-			const dy = localY - centers[i * 2 + 1];
-			distances[i] = Math.hypot(dx, dy);
-		}
-		cancelRipple();
-		rippleState = {
-			distances,
-			peaked: new Uint8Array(n),
-			returned: new Uint8Array(n),
-			startMs: performance.now(),
-		};
-		rippleRaf = requestAnimationFrame(rippleTick);
-	}
+	cancelRipple();
+	rippleState = {
+		distances,
+		peaked: new Uint8Array(n),
+		returned: new Uint8Array(n),
+		startMs: performance.now(),
+	};
+	rippleRaf = requestAnimationFrame(rippleTick);
+}
 </script>
 
 <div class="kinetic-shell">
@@ -590,31 +585,19 @@
 			{/if}
 		</div>
 		<div class="status-cluster">
-			<button
-				type="button"
-				class="wasm-status"
-				data-tone={wasmStatusTone}
+			<StatusPill
+				tone={wasmStatusTone}
+				label={wasmStatusLabel}
+				meta={wasmDiag.loaded && wasmDiag.initDurationMs !== null
+					? `${wasmDiag.initDurationMs.toFixed(1)} ms`
+					: undefined}
+				title="Click for renderer debug info"
 				onclick={() => {
 					refreshWasmDiag();
 					showWasmDebug = true;
 				}}
-				title="Click for renderer debug info"
-			>
-				<span class="dot" aria-hidden="true"></span>
-				<span class="wasm-status-label">{wasmStatusLabel}</span>
-				{#if wasmDiag.loaded && wasmDiag.initDurationMs !== null}
-					<span class="wasm-status-meta">{wasmDiag.initDurationMs.toFixed(1)} ms</span>
-				{/if}
-			</button>
-			<button
-				type="button"
-				class="info-btn"
-				onclick={() => (showAbout = true)}
-				title="What is this?"
-				aria-label="About this renderer"
-			>
-				<Info class="size-4" />
-			</button>
+			/>
+			<InfoButton onclick={() => (showAbout = true)} label="About this renderer" />
 		</div>
 	</header>
 
@@ -647,116 +630,69 @@
 	</div>
 </div>
 
-{#if showWasmDebug}
-	<div
-		class="modal-backdrop"
-		role="presentation"
-		onclick={() => (showWasmDebug = false)}
-		onkeydown={(e: KeyboardEvent) => {
-			if (e.key === 'Escape') showWasmDebug = false;
-		}}
-	>
-		<div
-			class="modal"
-			role="dialog"
-			aria-modal="true"
-			aria-label="Renderer debug info"
-			tabindex="-1"
-			onclick={(e: MouseEvent) => e.stopPropagation()}
-			onkeydown={(e: KeyboardEvent) => e.stopPropagation()}
-		>
-			<div class="modal-head">
-				<div class="modal-title">
-					<span class="dot" data-tone={wasmStatusTone} aria-hidden="true"></span>
-					<h2>Renderer debug</h2>
-					<Badge variant="outline" class="font-mono">{wasmDiag.backend}</Badge>
-				</div>
-				<button
-					type="button"
-					class="close"
-					onclick={() => (showWasmDebug = false)}
-					aria-label="Close"
-				>
-					<X class="size-4" />
-				</button>
-			</div>
-			<dl class="diag">
-				<dt>Pipeline</dt>
-				<dd>WASM rasterizer → R8 atlas → WebGL2 instanced quad</dd>
-				<dt>Backend</dt>
-				<dd>
-					<code>{wasmDiag.backend}</code>
-				</dd>
-				<dt>Font</dt>
-				<dd>
-					{#if fontLoadState === 'ok'}
-						<code>Recursive_VF.ttf</code> loaded
-					{:else if fontLoadState === 'err'}
-						<span class="hint-text">error: {fontLoadError}</span>
-					{:else}
-						loading…
-					{/if}
-				</dd>
-				<dt>Atlas entries</dt>
-				<dd>{atlasEntries} glyphs ({atlasHits} hits / {atlasMisses} misses)</dd>
-				<dt>Atlas bytes used</dt>
-				<dd>{formatBytes(atlas?.usedBytes ?? null)} / {formatBytes(atlas?.maxBytes ?? null)}</dd>
-				<dt>Atlas size</dt>
-				<dd>{atlas?.textureSize ?? '—'}² R8 (DPR ×{atlas?.dpr ?? '—'})</dd>
-				<dt>init duration</dt>
-				<dd>{wasmDiag.initDurationMs !== null ? `${wasmDiag.initDurationMs.toFixed(2)} ms` : '—'}</dd>
-				<dt>WASM memory</dt>
-				<dd>{formatBytes(wasmDiag.wasmMemoryBytes)}</dd>
-				<dt>WebAssembly support</dt>
-				<dd>{wasmEnv.hasWebAssembly ? 'yes' : 'no'}</dd>
-				<dt>crossOriginIsolated</dt>
-				<dd>{wasmEnv.crossOriginIsolated ? 'yes' : 'no'}</dd>
-				<dt>User agent</dt>
-				<dd class="ua">{wasmEnv.userAgent}</dd>
-			</dl>
-			<div class="modal-foot">
-				<Button variant="outline" onclick={refreshWasmDiag}>Refresh</Button>
-				<Button onclick={() => (showWasmDebug = false)}>Close</Button>
-			</div>
-		</div>
-	</div>
-{/if}
+<Modal
+	open={showWasmDebug}
+	title="Renderer debug"
+	ariaLabel="Renderer debug info"
+	headTone={wasmStatusTone}
+	badge={wasmDiag.backend}
+	onClose={() => (showWasmDebug = false)}
+>
+	{#snippet children()}
+		<dl class="diag">
+			<dt>Pipeline</dt>
+			<dd>WASM rasterizer → R8 atlas → WebGL2 instanced quad</dd>
+			<dt>Backend</dt>
+			<dd>
+				<code>{wasmDiag.backend}</code>
+			</dd>
+			<dt>Font</dt>
+			<dd>
+				{#if fontLoadState === 'ok'}
+					<code>Recursive_VF.ttf</code> loaded
+				{:else if fontLoadState === 'err'}
+					<span class="hint-text">error: {fontLoadError}</span>
+				{:else}
+					loading…
+				{/if}
+			</dd>
+			<dt>Atlas entries</dt>
+			<dd>{atlasEntries} glyphs ({atlasHits} hits / {atlasMisses} misses)</dd>
+			<dt>Atlas bytes used</dt>
+			<dd>{formatBytes(atlas?.usedBytes ?? null)} / {formatBytes(atlas?.maxBytes ?? null)}</dd>
+			<dt>Atlas size</dt>
+			<dd>{atlas?.textureSize ?? '—'}² R8 (DPR ×{atlas?.dpr ?? '—'})</dd>
+			<dt>init duration</dt>
+			<dd>{wasmDiag.initDurationMs !== null ? `${wasmDiag.initDurationMs.toFixed(2)} ms` : '—'}</dd>
+			<dt>WASM memory</dt>
+			<dd>{formatBytes(wasmDiag.wasmMemoryBytes)}</dd>
+			<dt>WebAssembly support</dt>
+			<dd>{wasmEnv.hasWebAssembly ? 'yes' : 'no'}</dd>
+			<dt>crossOriginIsolated</dt>
+			<dd>{wasmEnv.crossOriginIsolated ? 'yes' : 'no'}</dd>
+			<dt>User agent</dt>
+			<dd class="ua">{wasmEnv.userAgent}</dd>
+		</dl>
+	{/snippet}
+	{#snippet foot()}
+		<Button variant="outline" onclick={refreshWasmDiag}>Refresh</Button>
+		<Button onclick={() => (showWasmDebug = false)}>Close</Button>
+	{/snippet}
+</Modal>
 
-{#if showAbout}
-	<div
-		class="modal-backdrop"
-		role="presentation"
-		onclick={() => (showAbout = false)}
-		onkeydown={(e: KeyboardEvent) => {
-			if (e.key === 'Escape') showAbout = false;
-		}}
-	>
-		<div
-			class="modal about-modal"
-			role="dialog"
-			aria-modal="true"
-			aria-label="About the kinetic GPU renderer"
-			tabindex="-1"
-			onclick={(e: MouseEvent) => e.stopPropagation()}
-			onkeydown={(e: KeyboardEvent) => e.stopPropagation()}
-		>
-			<div class="modal-head">
-				<div class="modal-title">
-					<Info class="size-5" />
-					<h2>How this renders</h2>
-					<Badge variant="outline" class="font-mono">GPU</Badge>
-				</div>
-				<button
-					type="button"
-					class="close"
-					onclick={() => (showAbout = false)}
-					aria-label="Close"
-				>
-					<X class="size-4" />
-				</button>
-			</div>
-
-			<div class="about-body">
+<Modal
+	open={showAbout}
+	title="How this renders"
+	ariaLabel="About the kinetic GPU renderer"
+	width="wide"
+	badge="GPU"
+	onClose={() => (showAbout = false)}
+>
+	{#snippet icon()}
+		<Info class="size-5" />
+	{/snippet}
+	{#snippet children()}
+		<div class="about-body">
 				<p class="lead">
 					Every word on this page renders <strong>without using the browser's font system</strong>.
 					Glyph bitmaps are produced on demand by Rust compiled to WebAssembly,
@@ -875,13 +811,11 @@
 					</li>
 				</ul>
 			</div>
-
-			<div class="modal-foot">
-				<Button onclick={() => (showAbout = false)}>Got it</Button>
-			</div>
-		</div>
-	</div>
-{/if}
+	{/snippet}
+	{#snippet foot()}
+		<Button onclick={() => (showAbout = false)}>Got it</Button>
+	{/snippet}
+</Modal>
 
 <style>
 	.kinetic-shell {
@@ -985,106 +919,6 @@
 		flex-shrink: 0;
 	}
 
-	.info-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.85rem;
-		height: 1.85rem;
-		padding: 0;
-		border-radius: 999px;
-		border: 1px solid var(--color-border, #e5e7eb);
-		background: var(--color-card, #fff);
-		color: var(--color-muted-foreground, #6b7280);
-		cursor: pointer;
-		transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
-	}
-	.info-btn:hover {
-		background: var(--color-accent, rgba(0, 0, 0, 0.04));
-		color: var(--color-foreground);
-		border-color: color-mix(in srgb, var(--color-foreground) 25%, var(--color-border));
-	}
-	.info-btn:active {
-		transform: translateY(1px);
-	}
-
-	.wasm-status {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.28rem 0.6rem;
-		border-radius: 999px;
-		border: 1px solid var(--color-border, #e5e7eb);
-		background: var(--color-card, #fff);
-		font-size: 0.72rem;
-		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-		cursor: pointer;
-		flex-shrink: 0;
-		white-space: nowrap;
-		transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
-	}
-	.wasm-status:hover {
-		background: var(--color-accent, rgba(0, 0, 0, 0.04));
-	}
-	.wasm-status:active {
-		transform: translateY(1px);
-	}
-	.wasm-status .dot {
-		width: 0.5rem;
-		height: 0.5rem;
-		border-radius: 50%;
-		background: #9ca3af;
-		box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.18);
-	}
-	.wasm-status[data-tone='ok'] .dot { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
-	.wasm-status[data-tone='ok'] { border-color: rgba(34, 197, 94, 0.4); }
-	.wasm-status[data-tone='warn'] .dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
-	.wasm-status[data-tone='warn'] { border-color: rgba(245, 158, 11, 0.4); }
-	.wasm-status[data-tone='err'] .dot { background: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18); }
-	.wasm-status[data-tone='err'] { border-color: rgba(220, 38, 38, 0.4); }
-	.wasm-status[data-tone='pending'] .dot {
-		background: #3b82f6;
-		animation: pulse 1.2s ease-in-out infinite;
-	}
-	.wasm-status-meta {
-		color: var(--color-muted-foreground, #6b7280);
-	}
-	@keyframes pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.4; }
-	}
-
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(15, 23, 42, 0.5);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 1rem;
-		z-index: 50;
-		animation: fade-in 120ms ease-out;
-	}
-	@keyframes fade-in {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-	.modal {
-		background: var(--color-card, #ffffff);
-		color: var(--color-foreground, #111827);
-		border-radius: 12px;
-		max-width: 640px;
-		width: 100%;
-		max-height: 80vh;
-		overflow: auto;
-		box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.3);
-		border: 1px solid var(--color-border, #e5e7eb);
-		animation: pop-in 140ms ease-out;
-	}
-	.about-modal {
-		max-width: 760px;
-	}
 	.about-body {
 		padding: 1rem 1.25rem;
 		font-size: 0.88rem;
@@ -1159,57 +993,6 @@
 	.about-body ul li {
 		margin-bottom: 0.25rem;
 	}
-	@keyframes pop-in {
-		from { opacity: 0; transform: scale(0.97); }
-		to { opacity: 1; transform: scale(1); }
-	}
-	.modal-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.9rem 1rem;
-		border-bottom: 1px solid var(--color-border, #e5e7eb);
-	}
-	.modal-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	.modal-title h2 {
-		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-	}
-	.modal-title .dot {
-		width: 0.5rem;
-		height: 0.5rem;
-		border-radius: 50%;
-		background: #9ca3af;
-	}
-	.modal-title .dot[data-tone='ok'] { background: #22c55e; }
-	.modal-title .dot[data-tone='warn'] { background: #f59e0b; }
-	.modal-title .dot[data-tone='err'] { background: #dc2626; }
-	.modal-title .dot[data-tone='pending'] {
-		background: #3b82f6;
-		animation: pulse 1.2s ease-in-out infinite;
-	}
-	.close {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		background: transparent;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		color: var(--color-muted-foreground, #6b7280);
-		transition: background 120ms ease, color 120ms ease;
-	}
-	.close:hover {
-		background: var(--color-accent, rgba(0, 0, 0, 0.05));
-		color: var(--color-foreground);
-	}
 	.diag {
 		display: grid;
 		grid-template-columns: 9rem 1fr;
@@ -1238,12 +1021,5 @@
 	.ua {
 		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 		font-size: 0.7rem;
-	}
-	.modal-foot {
-		display: flex;
-		gap: 0.5rem;
-		justify-content: flex-end;
-		padding: 0.75rem 1rem;
-		border-top: 1px solid var(--color-border, #e5e7eb);
 	}
 </style>

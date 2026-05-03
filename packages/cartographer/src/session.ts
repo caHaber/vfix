@@ -1,9 +1,9 @@
 import { loadWasm } from '@variable-font/core';
-import { Annotator } from './annotator.js';
 import type { AnnotationEvent, AnnotatorOptions } from './annotator.js';
-import { detectMode } from './mode-detector.js';
-import { Measurer } from './measurer.js';
+import { Annotator } from './annotator.js';
 import { LayoutEngine } from './layout-engine.js';
+import { Measurer } from './measurer.js';
+import { detectMode } from './mode-detector.js';
 import { StreamingLayout } from './streaming-layout.js';
 import type { LayoutResult, MapOptions, ResponseStructure } from './types.js';
 

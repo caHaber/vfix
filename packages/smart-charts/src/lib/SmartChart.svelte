@@ -1,37 +1,37 @@
 <script lang="ts">
-	import { LayerCake, Svg } from 'layercake';
-	import { scaleBand, scaleLinear, scaleTime } from 'd3-scale';
-	import type { AdaptedData } from '../core/data-adapter.js';
-	import type { EnhancementSpec, StatisticalProfile } from '../core/types.js';
-	import { specToRows } from '../render/spec-to-rows.js';
-	import Annotations from '../render/charts/Annotations.svelte';
-	import Area from '../render/charts/Area.svelte';
-	import Axes from '../render/charts/Axes.svelte';
-	import Bar from '../render/charts/Bar.svelte';
-	import Histogram from '../render/charts/Histogram.svelte';
-	import Line from '../render/charts/Line.svelte';
-	import Scatter from '../render/charts/Scatter.svelte';
-	import SentimentBar from '../render/charts/SentimentBar.svelte';
-	import WordCloud from '../render/charts/WordCloud.svelte';
+import { scaleBand, scaleLinear, scaleTime } from 'd3-scale';
+import { LayerCake, Svg } from 'layercake';
+import type { AdaptedData } from '../core/data-adapter.js';
+import type { EnhancementSpec, StatisticalProfile } from '../core/types.js';
+import Annotations from '../render/charts/Annotations.svelte';
+import Area from '../render/charts/Area.svelte';
+import Axes from '../render/charts/Axes.svelte';
+import Bar from '../render/charts/Bar.svelte';
+import Histogram from '../render/charts/Histogram.svelte';
+import Line from '../render/charts/Line.svelte';
+import Scatter from '../render/charts/Scatter.svelte';
+import SentimentBar from '../render/charts/SentimentBar.svelte';
+import WordCloud from '../render/charts/WordCloud.svelte';
+import { specToRows } from '../render/spec-to-rows.js';
 
-	type Props = {
-		spec: EnhancementSpec;
-		profile: StatisticalProfile;
-		adapted: AdaptedData;
-		height?: number;
-	};
+type Props = {
+	spec: EnhancementSpec;
+	profile: StatisticalProfile;
+	adapted: AdaptedData;
+	height?: number;
+};
 
-	let { spec, profile, adapted, height = 360 }: Props = $props();
+let { spec, profile, adapted, height = 360 }: Props = $props();
 
-	const view = $derived(specToRows(spec, adapted, profile));
+const view = $derived(specToRows(spec, adapted, profile));
 
-	const xScaleFn = $derived.by(() => {
-		if (view.xType === 'temporal') return scaleTime();
-		if (view.xType === 'categorical') return scaleBand().padding(0.2);
-		return scaleLinear();
-	});
+const xScaleFn = $derived.by(() => {
+	if (view.xType === 'temporal') return scaleTime();
+	if (view.xType === 'categorical') return scaleBand().padding(0.2);
+	return scaleLinear();
+});
 
-	const padding = { top: 16, right: 16, bottom: 36, left: 56 };
+const padding = { top: 16, right: 16, bottom: 36, left: 56 };
 </script>
 
 <div class="smart-chart" style:height="{height}px">

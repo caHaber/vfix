@@ -1,6 +1,10 @@
 import type { LLMConfig } from '../types.js';
 
-export async function callAnthropic(config: LLMConfig, system: string, user: string): Promise<string> {
+export async function callAnthropic(
+	config: LLMConfig,
+	system: string,
+	user: string,
+): Promise<string> {
 	const endpoint = config.endpoint ?? 'https://api.anthropic.com/v1/messages';
 	const res = await fetch(endpoint, {
 		method: 'POST',
@@ -21,6 +25,8 @@ export async function callAnthropic(config: LLMConfig, system: string, user: str
 		throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
 	}
 	const json = await res.json();
-	const block = Array.isArray(json.content) ? json.content.find((b: { type: string }) => b.type === 'text') : null;
+	const block = Array.isArray(json.content)
+		? json.content.find((b: { type: string }) => b.type === 'text')
+		: null;
 	return block?.text ?? '';
 }

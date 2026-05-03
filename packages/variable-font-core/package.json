@@ -1,31 +1,31 @@
 {
-  "name": "@variable-font/core",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "typecheck": "tsc --noEmit"
-  },
-  "peerDependencies": {
-    "@vfir/wasm": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@vfir/wasm": {
-      "optional": true
-    }
-  },
-  "devDependencies": {
-    "tsup": "^8.5.1"
-  },
-  "dependencies": {
-    "@chenglou/pretext": "^0.0.5"
-  }
+	"name": "@variable-font/core",
+	"version": "0.0.1",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "tsup src/index.ts --format esm --dts --clean",
+		"typecheck": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"@vfir/wasm": "workspace:*"
+	},
+	"peerDependenciesMeta": {
+		"@vfir/wasm": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"tsup": "^8.5.1"
+	},
+	"dependencies": {
+		"@chenglou/pretext": "^0.0.5"
+	}
 }

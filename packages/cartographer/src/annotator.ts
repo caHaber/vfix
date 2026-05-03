@@ -105,7 +105,11 @@ export class Annotator {
 					} catch {
 						continue;
 					}
-					if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta' && typeof parsed.delta.text === 'string') {
+					if (
+						parsed.type === 'content_block_delta' &&
+						parsed.delta?.type === 'text_delta' &&
+						typeof parsed.delta.text === 'string'
+					) {
 						lineBuf += parsed.delta.text;
 						let nlIdx;
 						while ((nlIdx = lineBuf.indexOf('\n')) >= 0) {
@@ -178,7 +182,8 @@ function dispatchLine(raw: string, onEvent: (ev: AnnotationEvent) => void): void
 
 	const kind = obj.kind;
 	if (kind === 'block') {
-		if (typeof obj.id !== 'string' || typeof obj.text !== 'string' || typeof obj.type !== 'string') return;
+		if (typeof obj.id !== 'string' || typeof obj.text !== 'string' || typeof obj.type !== 'string')
+			return;
 		const block: ContentBlock = {
 			id: obj.id,
 			text: obj.text,
@@ -197,7 +202,8 @@ function dispatchLine(raw: string, onEvent: (ev: AnnotationEvent) => void): void
 		};
 		onEvent({ kind: 'group', group });
 	} else if (kind === 'relationship') {
-		if (typeof obj.from !== 'string' || typeof obj.to !== 'string' || typeof obj.type !== 'string') return;
+		if (typeof obj.from !== 'string' || typeof obj.to !== 'string' || typeof obj.type !== 'string')
+			return;
 		onEvent({
 			kind: 'relationship',
 			relationship: {
@@ -247,7 +253,10 @@ function humanizeGroupId(id: string): string {
 
 /** Back-compat: parse the old single-object JSON format. */
 export function parseJsonResponse(raw: string): ResponseStructure {
-	const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+	const stripped = raw
+		.replace(/^```(?:json)?\s*/i, '')
+		.replace(/\s*```$/i, '')
+		.trim();
 	const start = stripped.indexOf('{');
 	const end = stripped.lastIndexOf('}');
 	if (start < 0 || end < 0) throw new Error('No JSON object in annotator output');

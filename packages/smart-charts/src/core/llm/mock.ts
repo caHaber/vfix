@@ -37,10 +37,7 @@ export function heuristicSpec(profile: StatisticalProfile, question?: string): E
 			annotations: [],
 			emphasis: { rows: [], reason: 'top keywords' },
 			caption: `Top keywords across ${profile.shape.rows} ${tname} entries.`,
-			followUpQuestions: [
-				`Which entries are most negative?`,
-				`Are there themes by category?`,
-			],
+			followUpQuestions: [`Which entries are most negative?`, `Are there themes by category?`],
 		};
 	}
 
@@ -50,10 +47,18 @@ export function heuristicSpec(profile: StatisticalProfile, question?: string): E
 		const y = numeric[0][0];
 		const annotations: EnhancementSpec['annotations'] = [];
 		if (profile.timeseries?.trend.strength && profile.timeseries.trend.strength > 0.2) {
-			annotations.push({ type: 'trendline', method: 'linear', label: profile.timeseries.trend.direction });
+			annotations.push({
+				type: 'trendline',
+				method: 'linear',
+				label: profile.timeseries.trend.direction,
+			});
 		}
 		for (const cp of profile.timeseries?.changePoints.slice(0, 2) ?? []) {
-			annotations.push({ type: 'callout', targetIndex: cp.index, text: `change (${cp.confidence.toFixed(2)})` });
+			annotations.push({
+				type: 'callout',
+				targetIndex: cp.index,
+				text: `change (${cp.confidence.toFixed(2)})`,
+			});
 		}
 		return {
 			chartType: 'line',

@@ -189,10 +189,14 @@ export class AtlasRenderer {
 		};
 
 		let off = 0;
-		enable('aPosSize', 4, off); off += 4 * 4;
-		enable('aUvLo', 4, off); off += 4 * 4;
-		enable('aUvHi', 4, off); off += 4 * 4;
-		enable('aBlendT', 1, off); off += 1 * 4;
+		enable('aPosSize', 4, off);
+		off += 4 * 4;
+		enable('aUvLo', 4, off);
+		off += 4 * 4;
+		enable('aUvHi', 4, off);
+		off += 4 * 4;
+		enable('aBlendT', 1, off);
+		off += 1 * 4;
 		enable('aColor', 4, off);
 	}
 
@@ -231,10 +235,7 @@ export class AtlasRenderer {
 				const slice = new Uint8Array(r.width * r.height);
 				for (let row = 0; row < r.height; row++) {
 					const srcOff = (r.y + row) * stride + r.x;
-					slice.set(
-						this.atlas.pixels.subarray(srcOff, srcOff + r.width),
-						row * r.width,
-					);
+					slice.set(this.atlas.pixels.subarray(srcOff, srcOff + r.width), row * r.width);
 				}
 				gl.texSubImage2D(
 					gl.TEXTURE_2D,
@@ -332,11 +333,7 @@ function createQuadBuffer(gl: WebGL2RenderingContext): WebGLBuffer {
 	if (!buf) throw new Error('Failed to create quad buffer');
 	gl.bindBuffer(gl.ARRAY_BUFFER, buf);
 	// Triangle strip corners: (0,0), (1,0), (0,1), (1,1)
-	gl.bufferData(
-		gl.ARRAY_BUFFER,
-		new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]),
-		gl.STATIC_DRAW,
-	);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	return buf;
 }

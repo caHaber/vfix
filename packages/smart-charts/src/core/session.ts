@@ -1,5 +1,5 @@
-import { adapt, type AdaptedData } from './data-adapter.js';
-import { enhance, type EnhanceOptions } from './enhancer.js';
+import { type AdaptedData, adapt } from './data-adapter.js';
+import { type EnhanceOptions, enhance } from './enhancer.js';
 import { buildProfile } from './stats-engine.js';
 import type { EnhancementSpec, LLMConfig, Row, StatisticalProfile } from './types.js';
 import { loadWasmStats } from './wasm-bridge.js';

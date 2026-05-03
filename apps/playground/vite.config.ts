@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
-import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { defineConfig } from 'vite';
 
 const wasmPkgEntry = resolve(__dirname, '../../packages/wasm/pkg/vfir_wasm.js');
 const wasmResolved = existsSync(wasmPkgEntry)
@@ -21,7 +21,7 @@ export default defineConfig({
 			// Use the real WASM packages if built, otherwise fall back to stubs
 			'@vfir/wasm': wasmResolved,
 			'@vfir/wasm-stats': wasmStatsResolved,
-			'$lib': resolve(__dirname, './src/lib'),
+			$lib: resolve(__dirname, './src/lib'),
 		},
 	},
 });
