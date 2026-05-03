@@ -1,9 +1,9 @@
 <script lang="ts">
-	type Row = { group: string; sentiment: number; topKeyword?: string };
+type Row = { group: string; sentiment: number; topKeyword?: string };
 
-	let { rows = [] as Row[] }: { rows?: Row[] } = $props();
+let { rows = [] as Row[] }: { rows?: Row[] } = $props();
 
-	const max = $derived(Math.max(0.1, ...rows.map((r) => Math.abs(r.sentiment))));
+const max = $derived(Math.max(0.1, ...rows.map((r) => Math.abs(r.sentiment))));
 </script>
 
 <div class="sentiment-bar">

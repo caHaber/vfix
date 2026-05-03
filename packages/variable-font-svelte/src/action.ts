@@ -1,5 +1,5 @@
-import { Renderer } from '@variable-font/core';
 import type { AxisSnapshot, RendererOptions } from '@variable-font/core';
+import { Renderer } from '@variable-font/core';
 import type { Action } from 'svelte/action';
 
 export interface VariableFontParams {
@@ -14,10 +14,7 @@ export interface VariableFontAttributes {
 export function createVariableFont(options: RendererOptions) {
 	const renderer = new Renderer(options);
 
-	const apply: Action<HTMLElement, VariableFontParams, VariableFontAttributes> = (
-		node,
-		params,
-	) => {
+	const apply: Action<HTMLElement, VariableFontParams, VariableFontAttributes> = (node, params) => {
 		if (params?.axes) {
 			renderer.interpolator.jumpTo(params.axes);
 		}

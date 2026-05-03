@@ -1,60 +1,55 @@
 <script lang="ts">
-	import { variableFont } from '@variable-font/svelte';
-	import { easeOutCubic } from '@variable-font/core';
-	import * as Tabs from '$lib/components/ui/tabs';
-	import * as Card from '$lib/components/ui/card';
-	import { Slider } from '$lib/components/ui/slider';
-	import { Label } from '$lib/components/ui/label';
-	import KineticText from './KineticText.svelte';
-	import KineticCanvas from './KineticCanvas.svelte';
-	import ResponseMap from './ResponseMap.svelte';
-	import SmartCharts from './SmartCharts.svelte';
+import { easeOutCubic } from '@variable-font/core';
+import { variableFont } from '@variable-font/svelte';
+import * as Card from '$lib/components/ui/card';
+import { Label } from '$lib/components/ui/label';
+import { Slider } from '$lib/components/ui/slider';
+import * as Tabs from '$lib/components/ui/tabs';
+import KineticCanvas from './KineticCanvas.svelte';
+import KineticText from './KineticText.svelte';
+import ResponseMap from './ResponseMap.svelte';
+import SmartCharts from './SmartCharts.svelte';
 
-	type Tab =
-		| 'kinetic'
-		| 'kinetic-gpu'
-		| 'sliders'
-		| 'smart-charts'
-		| 'response-map';
-	let activeTab = $state<Tab>('kinetic-gpu');
+type Tab = 'kinetic' | 'kinetic-gpu' | 'sliders' | 'smart-charts' | 'response-map';
+let activeTab = $state<Tab>('kinetic-gpu');
 
-	const font = variableFont({
-		fontFamily: 'Recursive',
-		axes: {
-			wght: { tag: 'wght', min: 300, max: 1000, default: 400 },
-			slnt: { tag: 'slnt', min: -15, max: 0, default: 0 },
-			CASL: { tag: 'CASL', min: 0, max: 1, default: 0 },
-			CRSV: { tag: 'CRSV', min: 0, max: 1, default: 0.5 },
-			MONO: { tag: 'MONO', min: 0, max: 1, default: 0 },
-		},
-		easing: easeOutCubic,
-		stiffness: 0.06,
-	});
+const font = variableFont({
+	fontFamily: 'Recursive',
+	axes: {
+		wght: { tag: 'wght', min: 300, max: 1000, default: 400 },
+		slnt: { tag: 'slnt', min: -15, max: 0, default: 0 },
+		CASL: { tag: 'CASL', min: 0, max: 1, default: 0 },
+		CRSV: { tag: 'CRSV', min: 0, max: 1, default: 0.5 },
+		MONO: { tag: 'MONO', min: 0, max: 1, default: 0 },
+	},
+	easing: easeOutCubic,
+	stiffness: 0.06,
+});
 
-	const axisRanges: Record<string, { min: number; max: number; step: number }> = {
-		wght: { min: 300, max: 1000, step: 1 },
-		slnt: { min: -15, max: 0, step: 0.1 },
-		CASL: { min: 0, max: 1, step: 0.01 },
-		CRSV: { min: 0, max: 1, step: 0.01 },
-		MONO: { min: 0, max: 1, step: 0.01 },
-	};
+const axisRanges: Record<string, { min: number; max: number; step: number }> = {
+	wght: { min: 300, max: 1000, step: 1 },
+	slnt: { min: -15, max: 0, step: 0.1 },
+	CASL: { min: 0, max: 1, step: 0.01 },
+	CRSV: { min: 0, max: 1, step: 0.01 },
+	MONO: { min: 0, max: 1, step: 0.01 },
+};
 
-	// Sliders track the user's *target* directly so the thumb doesn't lag behind
-	// the spring-eased animation that drives the rendered text.
-	let axisTargets = $state<Record<string, number>>({
-		wght: 400,
-		slnt: 0,
-		CASL: 0,
-		CRSV: 0.5,
-		MONO: 0,
-	});
+// Sliders track the user's *target* directly so the thumb doesn't lag behind
+// the spring-eased animation that drives the rendered text.
+let axisTargets = $state<Record<string, number>>({
+	wght: 400,
+	slnt: 0,
+	CASL: 0,
+	CRSV: 0.5,
+	MONO: 0,
+});
 
-	function handleSliderChange(tag: string, values: number[]) {
-		if (values.length > 0) {
-			axisTargets[tag] = values[0];
-			font.set({ [tag]: values[0] });
-		}
+function handleSliderChange(tag: string, values: number[]) {
+	if (values.length > 0) {
+		axisTargets[tag] = values[0];
+		font.set({ [tag]: values[0] });
 	}
+}
 </script>
 
 <svelte:head>

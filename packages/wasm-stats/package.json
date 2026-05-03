@@ -6,5 +6,7 @@
 		"build": "wasm-pack build --target web --release --out-dir pkg",
 		"typecheck": "echo 'WASM package — no TS to check'"
 	},
-	"files": ["pkg/"]
+	"files": [
+		"pkg/"
+	]
 }

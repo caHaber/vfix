@@ -1,27 +1,27 @@
 {
-  "name": "vfir",
-  "private": true,
-  "packageManager": "pnpm@9.15.4",
-  "engines": {
-    "node": ">=20"
-  },
-  "scripts": {
-    "build": "pnpm -r --filter './packages/*' run build",
-    "build:wasm": "pnpm --filter @vfir/wasm run build",
-    "build:wasm-stats": "pnpm --filter @vfir/wasm-stats run build",
-    "dev": "pnpm --filter playground run dev",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "typecheck": "pnpm -r run typecheck"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.12",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
-  },
-  "dependencies": {
-    "@chenglou/pretext": "^0.0.5"
-  }
+	"name": "vfir",
+	"private": true,
+	"packageManager": "pnpm@9.15.4",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "pnpm -r --filter './packages/*' run build",
+		"build:wasm": "pnpm --filter @vfir/wasm run build",
+		"build:wasm-stats": "pnpm --filter @vfir/wasm-stats run build",
+		"dev": "pnpm --filter playground run dev",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"typecheck": "pnpm -r run typecheck"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.12",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.4"
+	},
+	"dependencies": {
+		"@chenglou/pretext": "^0.0.5"
+	}
 }

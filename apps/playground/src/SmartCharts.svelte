@@ -1,148 +1,147 @@
 <script lang="ts">
-	import {
-		SmartChart,
-		createChart,
-		compactProfileForPrompt,
-		getWasmStatsDiagnostics,
-		type EnhancementSpec,
-		type LLMConfig,
-		type StatisticalProfile,
-		type SmartChartSession,
-		type WasmDiagnostics,
-	} from '@vfir/smart-charts';
-	import { DATASETS } from './smart-charts-data';
-	import * as Card from '$lib/components/ui/card';
-	import * as Select from '$lib/components/ui/select';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Separator } from '$lib/components/ui/separator';
-	import Database from '@lucide/svelte/icons/database';
-	import MessageSquare from '@lucide/svelte/icons/message-square';
-	import Sparkles from '@lucide/svelte/icons/sparkles';
-	import Zap from '@lucide/svelte/icons/zap';
-	import Check from '@lucide/svelte/icons/check';
-	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
-	import X from '@lucide/svelte/icons/x';
-	import Loader2 from '@lucide/svelte/icons/loader-2';
+import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
+import Check from '@lucide/svelte/icons/check';
+import ChevronDown from '@lucide/svelte/icons/chevron-down';
+import ChevronRight from '@lucide/svelte/icons/chevron-right';
+import Database from '@lucide/svelte/icons/database';
+import Loader2 from '@lucide/svelte/icons/loader-2';
+import MessageSquare from '@lucide/svelte/icons/message-square';
+import Sparkles from '@lucide/svelte/icons/sparkles';
+import Zap from '@lucide/svelte/icons/zap';
+import {
+	compactProfileForPrompt,
+	createChart,
+	type EnhancementSpec,
+	getWasmStatsDiagnostics,
+	type LLMConfig,
+	SmartChart,
+	type SmartChartSession,
+	type StatisticalProfile,
+	type WasmDiagnostics,
+} from '@vfir/smart-charts';
+import { Badge } from '$lib/components/ui/badge';
+import { Button } from '$lib/components/ui/button';
+import * as Card from '$lib/components/ui/card';
+import { Modal, StatusPill } from '$lib/components/ui/info';
+import { Input } from '$lib/components/ui/input';
+import { Label } from '$lib/components/ui/label';
+import * as Select from '$lib/components/ui/select';
+import { Separator } from '$lib/components/ui/separator';
+import { DATASETS } from './smart-charts-data';
 
-	const STORAGE_KEY = 'smart-charts-config';
+const STORAGE_KEY = 'smart-charts-config';
 
-	type Provider = 'mock' | 'openai' | 'anthropic';
+type Provider = 'mock' | 'openai' | 'anthropic';
 
-	let datasetId = $state<string>(DATASETS[0].id);
-	let question = $state<string>('');
-	let provider = $state<Provider>('mock');
-	let model = $state<string>('claude-haiku-4-5');
-	let apiKey = $state<string>('');
+let datasetId = $state<string>(DATASETS[0].id);
+let question = $state<string>('');
+let provider = $state<Provider>('mock');
+let model = $state<string>('claude-haiku-4-5');
+let apiKey = $state<string>('');
 
-	let busy = $state<boolean>(false);
-	let error = $state<string | null>(null);
-	let profile = $state<StatisticalProfile | null>(null);
-	let spec = $state<EnhancementSpec | null>(null);
-	let showProfile = $state<boolean>(false);
+let busy = $state<boolean>(false);
+let error = $state<string | null>(null);
+let profile = $state<StatisticalProfile | null>(null);
+let spec = $state<EnhancementSpec | null>(null);
+let showProfile = $state<boolean>(false);
 
-	if (typeof localStorage !== 'undefined') {
-		try {
-			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as {
-				provider?: Provider;
-				model?: string;
-				apiKey?: string;
-			};
-			if (stored.provider) provider = stored.provider;
-			if (stored.model) model = stored.model;
-			if (stored.apiKey) apiKey = stored.apiKey;
-		} catch {
-			// ignore
-		}
+if (typeof localStorage !== 'undefined') {
+	try {
+		const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as {
+			provider?: Provider;
+			model?: string;
+			apiKey?: string;
+		};
+		if (stored.provider) provider = stored.provider;
+		if (stored.model) model = stored.model;
+		if (stored.apiKey) apiKey = stored.apiKey;
+	} catch {
+		// ignore
 	}
+}
 
-	$effect(() => {
-		if (typeof localStorage === 'undefined') return;
-		localStorage.setItem(STORAGE_KEY, JSON.stringify({ provider, model, apiKey }));
+$effect(() => {
+	if (typeof localStorage === 'undefined') return;
+	localStorage.setItem(STORAGE_KEY, JSON.stringify({ provider, model, apiKey }));
+});
+
+let session = $state<SmartChartSession | null>(null);
+let datasetMeta = $derived(DATASETS.find((d) => d.id === datasetId) ?? DATASETS[0]);
+
+let wasmDiag = $state<WasmDiagnostics>(getWasmStatsDiagnostics());
+let showWasmDebug = $state<boolean>(false);
+let wasmEnv = {
+	hasWebAssembly: typeof WebAssembly !== 'undefined',
+	userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a',
+	crossOriginIsolated:
+		typeof globalThis !== 'undefined' && 'crossOriginIsolated' in globalThis
+			? ((globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated ?? false)
+			: false,
+};
+
+function refreshWasmDiag() {
+	wasmDiag = getWasmStatsDiagnostics();
+}
+
+let wasmStatusLabel = $derived.by(() => {
+	if (wasmDiag.loading) return 'Loading…';
+	if (!wasmDiag.loaded) return 'Idle';
+	if (wasmDiag.initError) return 'Error';
+	if (wasmDiag.backend === 'wasm') return 'WASM active';
+	if (wasmDiag.backend === 'js-stub') return 'JS fallback';
+	return 'Loaded';
+});
+
+let wasmStatusTone = $derived.by(() => {
+	if (wasmDiag.initError) return 'err';
+	if (wasmDiag.loaded && wasmDiag.backend === 'wasm') return 'ok';
+	if (wasmDiag.loaded && wasmDiag.backend === 'js-stub') return 'warn';
+	if (wasmDiag.loading) return 'pending';
+	return 'idle';
+});
+
+let providerLabel = $derived.by(() => {
+	if (provider === 'mock') return 'Heuristic (no API)';
+	if (provider === 'openai') return 'OpenAI';
+	return 'Anthropic';
+});
+
+function formatBytes(n: number | null): string {
+	if (n == null) return '—';
+	if (n < 1024) return `${n} B`;
+	if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KiB`;
+	return `${(n / 1024 / 1024).toFixed(2)} MiB`;
+}
+
+$effect(() => {
+	const meta = datasetMeta;
+	session = createChart({
+		data: meta.rows,
+		wasm: () => import('@vfir/wasm-stats'),
 	});
+	profile = null;
+	spec = null;
+});
 
-	let session = $state<SmartChartSession | null>(null);
-	let datasetMeta = $derived(DATASETS.find((d) => d.id === datasetId) ?? DATASETS[0]);
-
-	let wasmDiag = $state<WasmDiagnostics>(getWasmStatsDiagnostics());
-	let showWasmDebug = $state<boolean>(false);
-	let wasmEnv = {
-		hasWebAssembly: typeof WebAssembly !== 'undefined',
-		userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a',
-		crossOriginIsolated:
-			typeof globalThis !== 'undefined' && 'crossOriginIsolated' in globalThis
-				? (globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated ?? false
-				: false,
-	};
-
-	function refreshWasmDiag() {
-		wasmDiag = getWasmStatsDiagnostics();
-	}
-
-	let wasmStatusLabel = $derived.by(() => {
-		if (wasmDiag.loading) return 'Loading…';
-		if (!wasmDiag.loaded) return 'Idle';
-		if (wasmDiag.initError) return 'Error';
-		if (wasmDiag.backend === 'wasm') return 'WASM active';
-		if (wasmDiag.backend === 'js-stub') return 'JS fallback';
-		return 'Loaded';
-	});
-
-	let wasmStatusTone = $derived.by(() => {
-		if (wasmDiag.initError) return 'err';
-		if (wasmDiag.loaded && wasmDiag.backend === 'wasm') return 'ok';
-		if (wasmDiag.loaded && wasmDiag.backend === 'js-stub') return 'warn';
-		if (wasmDiag.loading) return 'pending';
-		return 'idle';
-	});
-
-	let providerLabel = $derived.by(() => {
-		if (provider === 'mock') return 'Heuristic (no API)';
-		if (provider === 'openai') return 'OpenAI';
-		return 'Anthropic';
-	});
-
-	function formatBytes(n: number | null): string {
-		if (n == null) return '—';
-		if (n < 1024) return `${n} B`;
-		if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KiB`;
-		return `${(n / 1024 / 1024).toFixed(2)} MiB`;
-	}
-
-	$effect(() => {
-		const meta = datasetMeta;
-		session = createChart({
-			data: meta.rows,
-			wasm: () => import('@vfir/wasm-stats'),
-		});
-		profile = null;
-		spec = null;
-	});
-
-	async function run(q: string) {
-		if (!session) return;
-		error = null;
-		busy = true;
-		question = q;
+async function run(q: string) {
+	if (!session) return;
+	error = null;
+	busy = true;
+	question = q;
+	refreshWasmDiag();
+	try {
+		const llm: LLMConfig | undefined =
+			provider === 'mock' ? { provider: 'mock', model: 'mock' } : { provider, model, apiKey };
+		profile = await session.analyze();
 		refreshWasmDiag();
-		try {
-			const llm: LLMConfig | undefined = provider === 'mock'
-				? { provider: 'mock', model: 'mock' }
-				: { provider, model, apiKey };
-			profile = await session.analyze();
-			refreshWasmDiag();
-			spec = await session.enhance({ question: q, llm });
-		} catch (err) {
-			error = err instanceof Error ? err.message : String(err);
-		} finally {
-			busy = false;
-			refreshWasmDiag();
-		}
+		spec = await session.enhance({ question: q, llm });
+	} catch (err) {
+		error = err instanceof Error ? err.message : String(err);
+	} finally {
+		busy = false;
+		refreshWasmDiag();
 	}
+}
 </script>
 
 <main>
@@ -156,22 +155,18 @@
 				<h1>Ask data a question.</h1>
 				<p>Statistics run locally in WASM. The model only sees an aggregated profile — never your raw rows.</p>
 			</div>
-			<button
-				type="button"
-				class="wasm-status"
-				data-tone={wasmStatusTone}
+			<StatusPill
+				tone={wasmStatusTone}
+				label={wasmStatusLabel}
+				meta={wasmDiag.loaded && wasmDiag.initDurationMs !== null
+					? `${wasmDiag.initDurationMs.toFixed(1)} ms`
+					: undefined}
+				title="Click for WASM debug info"
 				onclick={() => {
 					refreshWasmDiag();
 					showWasmDebug = true;
 				}}
-				title="Click for WASM debug info"
-			>
-				<span class="dot" aria-hidden="true"></span>
-				<span class="wasm-status-label">{wasmStatusLabel}</span>
-				{#if wasmDiag.loaded && wasmDiag.initDurationMs !== null}
-					<span class="wasm-status-meta">{wasmDiag.initDurationMs.toFixed(1)} ms</span>
-				{/if}
-			</button>
+			/>
 		</div>
 	</header>
 
@@ -343,89 +338,64 @@
 		</div>
 	{/if}
 
-	{#if showWasmDebug}
-		<div
-			class="modal-backdrop"
-			role="presentation"
-			onclick={() => (showWasmDebug = false)}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Escape') showWasmDebug = false;
-			}}
-		>
-			<div
-				class="modal"
-				role="dialog"
-				aria-modal="true"
-				aria-label="WASM debug info"
-				tabindex="-1"
-				onclick={(e: MouseEvent) => e.stopPropagation()}
-				onkeydown={(e: KeyboardEvent) => e.stopPropagation()}
-			>
-				<div class="modal-head">
-					<div class="modal-title">
-						<span class="dot" data-tone={wasmStatusTone} aria-hidden="true"></span>
-						<h2>WASM debug</h2>
-						<Badge variant="outline" class="font-mono">{wasmDiag.backend}</Badge>
-					</div>
-					<button
-						type="button"
-						class="close"
-						onclick={() => (showWasmDebug = false)}
-						aria-label="Close"
-					>
-						<X class="size-4" />
-					</button>
-				</div>
-				<dl class="diag">
-					<dt>Backend</dt>
-					<dd>
-						<code>{wasmDiag.backend}</code>
-						{#if wasmDiag.backend === 'wasm'}
-							<span class="hint">— compiled Rust → WebAssembly</span>
-						{:else if wasmDiag.backend === 'js-stub'}
-							<span class="hint">— pure-JS fallback (run <code>pnpm build:wasm-stats</code> for real WASM)</span>
-						{:else if !wasmDiag.loaded}
-							<span class="hint">— not loaded yet (click Run)</span>
-						{/if}
-					</dd>
-					<dt>Loaded</dt>
-					<dd>{wasmDiag.loaded ? 'yes' : wasmDiag.loading ? 'loading…' : 'no'}</dd>
-					<dt>init() called</dt>
-					<dd>{wasmDiag.initCalled ? 'yes' : 'no'}</dd>
-					<dt>init duration</dt>
-					<dd>{wasmDiag.initDurationMs !== null ? `${wasmDiag.initDurationMs.toFixed(2)} ms` : '—'}</dd>
-					<dt>init error</dt>
-					<dd>{wasmDiag.initError ?? 'none'}</dd>
-					<dt>Loaded at</dt>
-					<dd>{wasmDiag.loadedAt ? new Date(wasmDiag.loadedAt).toLocaleTimeString() : '—'}</dd>
-					<dt>WASM memory</dt>
-					<dd>{formatBytes(wasmDiag.wasmMemoryBytes)}</dd>
-					<dt>Module exports ({wasmDiag.exportCount})</dt>
-					<dd>
-						{#if wasmDiag.exportNames.length === 0}
-							—
-						{:else}
-							<div class="exports">
-								{#each wasmDiag.exportNames as name (name)}
-									<code>{name}</code>
-								{/each}
-							</div>
-						{/if}
-					</dd>
-					<dt>WebAssembly support</dt>
-					<dd>{wasmEnv.hasWebAssembly ? 'yes' : 'no'}</dd>
-					<dt>crossOriginIsolated</dt>
-					<dd>{wasmEnv.crossOriginIsolated ? 'yes' : 'no'}</dd>
-					<dt>User agent</dt>
-					<dd class="ua">{wasmEnv.userAgent}</dd>
-				</dl>
-				<div class="modal-foot">
-					<Button variant="outline" onclick={refreshWasmDiag}>Refresh</Button>
-					<Button onclick={() => (showWasmDebug = false)}>Close</Button>
-				</div>
-			</div>
-		</div>
-	{/if}
+	<Modal
+		open={showWasmDebug}
+		title="WASM debug"
+		ariaLabel="WASM debug info"
+		headTone={wasmStatusTone}
+		badge={wasmDiag.backend}
+		onClose={() => (showWasmDebug = false)}
+	>
+		{#snippet children()}
+			<dl class="diag">
+				<dt>Backend</dt>
+				<dd>
+					<code>{wasmDiag.backend}</code>
+					{#if wasmDiag.backend === 'wasm'}
+						<span class="hint">— compiled Rust → WebAssembly</span>
+					{:else if wasmDiag.backend === 'js-stub'}
+						<span class="hint">— pure-JS fallback (run <code>pnpm build:wasm-stats</code> for real WASM)</span>
+					{:else if !wasmDiag.loaded}
+						<span class="hint">— not loaded yet (click Run)</span>
+					{/if}
+				</dd>
+				<dt>Loaded</dt>
+				<dd>{wasmDiag.loaded ? 'yes' : wasmDiag.loading ? 'loading…' : 'no'}</dd>
+				<dt>init() called</dt>
+				<dd>{wasmDiag.initCalled ? 'yes' : 'no'}</dd>
+				<dt>init duration</dt>
+				<dd>{wasmDiag.initDurationMs !== null ? `${wasmDiag.initDurationMs.toFixed(2)} ms` : '—'}</dd>
+				<dt>init error</dt>
+				<dd>{wasmDiag.initError ?? 'none'}</dd>
+				<dt>Loaded at</dt>
+				<dd>{wasmDiag.loadedAt ? new Date(wasmDiag.loadedAt).toLocaleTimeString() : '—'}</dd>
+				<dt>WASM memory</dt>
+				<dd>{formatBytes(wasmDiag.wasmMemoryBytes)}</dd>
+				<dt>Module exports ({wasmDiag.exportCount})</dt>
+				<dd>
+					{#if wasmDiag.exportNames.length === 0}
+						—
+					{:else}
+						<div class="exports">
+							{#each wasmDiag.exportNames as name (name)}
+								<code>{name}</code>
+							{/each}
+						</div>
+					{/if}
+				</dd>
+				<dt>WebAssembly support</dt>
+				<dd>{wasmEnv.hasWebAssembly ? 'yes' : 'no'}</dd>
+				<dt>crossOriginIsolated</dt>
+				<dd>{wasmEnv.crossOriginIsolated ? 'yes' : 'no'}</dd>
+				<dt>User agent</dt>
+				<dd class="ua">{wasmEnv.userAgent}</dd>
+			</dl>
+		{/snippet}
+		{#snippet foot()}
+			<Button variant="outline" onclick={refreshWasmDiag}>Refresh</Button>
+			<Button onclick={() => (showWasmDebug = false)}>Close</Button>
+		{/snippet}
+	</Modal>
 </main>
 
 <style>
@@ -478,131 +448,6 @@
 		line-height: 1.5;
 	}
 
-	.wasm-status {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.32rem 0.65rem;
-		border-radius: 999px;
-		border: 1px solid var(--color-border, #e5e7eb);
-		background: var(--color-card, #fff);
-		font-size: 0.75rem;
-		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-		cursor: pointer;
-		flex-shrink: 0;
-		white-space: nowrap;
-		transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
-	}
-	.wasm-status:hover {
-		background: var(--color-accent, rgba(0, 0, 0, 0.04));
-	}
-	.wasm-status:active {
-		transform: translateY(1px);
-	}
-	.wasm-status .dot {
-		width: 0.5rem;
-		height: 0.5rem;
-		border-radius: 50%;
-		background: #9ca3af;
-		box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.18);
-	}
-	.wasm-status[data-tone='ok'] .dot { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
-	.wasm-status[data-tone='ok'] { border-color: rgba(34, 197, 94, 0.4); }
-	.wasm-status[data-tone='warn'] .dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
-	.wasm-status[data-tone='warn'] { border-color: rgba(245, 158, 11, 0.4); }
-	.wasm-status[data-tone='err'] .dot { background: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18); }
-	.wasm-status[data-tone='err'] { border-color: rgba(220, 38, 38, 0.4); }
-	.wasm-status[data-tone='pending'] .dot {
-		background: #3b82f6;
-		animation: pulse 1.2s ease-in-out infinite;
-	}
-	.wasm-status-meta {
-		color: var(--color-muted-foreground, #6b7280);
-	}
-	@keyframes pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.4; }
-	}
-
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(15, 23, 42, 0.5);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 1rem;
-		z-index: 50;
-		animation: fade-in 120ms ease-out;
-	}
-	@keyframes fade-in {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-	.modal {
-		background: var(--color-card, #ffffff);
-		color: var(--color-foreground, #111827);
-		border-radius: 12px;
-		max-width: 640px;
-		width: 100%;
-		max-height: 80vh;
-		overflow: auto;
-		box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.3);
-		border: 1px solid var(--color-border, #e5e7eb);
-		animation: pop-in 140ms ease-out;
-	}
-	@keyframes pop-in {
-		from { opacity: 0; transform: scale(0.97); }
-		to { opacity: 1; transform: scale(1); }
-	}
-	.modal-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.9rem 1rem;
-		border-bottom: 1px solid var(--color-border, #e5e7eb);
-	}
-	.modal-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	.modal-title h2 {
-		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-	}
-	.modal-title .dot {
-		width: 0.5rem;
-		height: 0.5rem;
-		border-radius: 50%;
-		background: #9ca3af;
-	}
-	.modal-title .dot[data-tone='ok'] { background: #22c55e; }
-	.modal-title .dot[data-tone='warn'] { background: #f59e0b; }
-	.modal-title .dot[data-tone='err'] { background: #dc2626; }
-	.modal-title .dot[data-tone='pending'] {
-		background: #3b82f6;
-		animation: pulse 1.2s ease-in-out infinite;
-	}
-	.close {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		background: transparent;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		color: var(--color-muted-foreground, #6b7280);
-		transition: background 120ms ease, color 120ms ease;
-	}
-	.close:hover {
-		background: var(--color-accent, rgba(0, 0, 0, 0.05));
-		color: var(--color-foreground);
-	}
 	.diag {
 		display: grid;
 		grid-template-columns: 9rem 1fr;
@@ -638,13 +483,6 @@
 	.ua {
 		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 		font-size: 0.7rem;
-	}
-	.modal-foot {
-		display: flex;
-		gap: 0.5rem;
-		justify-content: flex-end;
-		padding: 0.75rem 1rem;
-		border-top: 1px solid var(--color-border, #e5e7eb);
 	}
 
 	.grid {

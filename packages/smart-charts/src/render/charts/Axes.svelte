@@ -1,48 +1,48 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Readable } from 'svelte/store';
+import { getContext } from 'svelte';
+import type { Readable } from 'svelte/store';
 
-	type Ctx = {
-		xScale: Readable<{ ticks?: (n?: number) => unknown[]; domain?: () => unknown[] }>;
-		yScale: Readable<(v: number) => number> & { ticks?: (n?: number) => number[] };
-		width: Readable<number>;
-		height: Readable<number>;
+type Ctx = {
+	xScale: Readable<{ ticks?: (n?: number) => unknown[]; domain?: () => unknown[] }>;
+	yScale: Readable<(v: number) => number> & { ticks?: (n?: number) => number[] };
+	width: Readable<number>;
+	height: Readable<number>;
+};
+
+let { xLabel = '', yLabel = '' }: { xLabel?: string; yLabel?: string } = $props();
+
+const { xScale, yScale, width, height } = getContext<Ctx>('LayerCake');
+
+function labelOf(v: unknown): string {
+	if (v instanceof Date) return v.toLocaleDateString();
+	if (typeof v === 'number') return formatNumber(v);
+	return String(v);
+}
+
+function formatNumber(n: number): string {
+	if (!Number.isFinite(n)) return '';
+	const abs = Math.abs(n);
+	if (abs >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+	if (abs < 1) return n.toFixed(2);
+	return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+const xTicks = $derived.by<Array<{ value: unknown; pos: number }>>(() => {
+	const s = $xScale as unknown as {
+		ticks?: (n?: number) => unknown[];
+		domain?: () => unknown[];
+		(v: unknown): number;
 	};
+	const fn = s as unknown as (v: unknown) => number;
+	const t = typeof s.ticks === 'function' ? s.ticks(6) : (s.domain?.() ?? []);
+	return (t ?? []).map((value) => ({ value, pos: fn(value as never) }));
+});
 
-	let { xLabel = '', yLabel = '' }: { xLabel?: string; yLabel?: string } = $props();
-
-	const { xScale, yScale, width, height } = getContext<Ctx>('LayerCake');
-
-	function labelOf(v: unknown): string {
-		if (v instanceof Date) return v.toLocaleDateString();
-		if (typeof v === 'number') return formatNumber(v);
-		return String(v);
-	}
-
-	function formatNumber(n: number): string {
-		if (!Number.isFinite(n)) return '';
-		const abs = Math.abs(n);
-		if (abs >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-		if (abs < 1) return n.toFixed(2);
-		return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-	}
-
-	const xTicks = $derived.by<Array<{ value: unknown; pos: number }>>(() => {
-		const s = $xScale as unknown as {
-			ticks?: (n?: number) => unknown[];
-			domain?: () => unknown[];
-			(v: unknown): number;
-		};
-		const fn = s as unknown as (v: unknown) => number;
-		const t = typeof s.ticks === 'function' ? s.ticks(6) : s.domain?.() ?? [];
-		return (t ?? []).map((value) => ({ value, pos: fn(value as never) }));
-	});
-
-	const yTicks = $derived.by<Array<{ value: number; pos: number }>>(() => {
-		const s = $yScale as unknown as { ticks?: (n?: number) => number[]; (v: number): number };
-		const t = typeof s.ticks === 'function' ? s.ticks(5) : [];
-		return (t ?? []).map((value) => ({ value, pos: (s as unknown as (v: number) => number)(value) }));
-	});
+const yTicks = $derived.by<Array<{ value: number; pos: number }>>(() => {
+	const s = $yScale as unknown as { ticks?: (n?: number) => number[]; (v: number): number };
+	const t = typeof s.ticks === 'function' ? s.ticks(5) : [];
+	return (t ?? []).map((value) => ({ value, pos: (s as unknown as (v: number) => number)(value) }));
+});
 </script>
 
 <g class="axes">

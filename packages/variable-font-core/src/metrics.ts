@@ -1,4 +1,4 @@
-import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext';
+import { layoutWithLines, prepareWithSegments } from '@chenglou/pretext';
 import type { AxisSnapshot, LayoutResult, LayoutWord } from './types.js';
 
 export interface MetricsProviderOptions {

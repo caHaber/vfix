@@ -22,35 +22,43 @@ export function compactProfileForPrompt(profile: StatisticalProfile): string {
 		correlations: profile.correlations.filter((c) => Math.abs(c.r) > 0.2),
 		timeseries: profile.timeseries
 			? {
-				column: profile.timeseries.column,
-				temporalColumn: profile.timeseries.temporalColumn,
-				trend: profile.timeseries.trend,
-				seasonality: profile.timeseries.seasonality,
-				changePointCount: profile.timeseries.changePoints.length,
-			}
+					column: profile.timeseries.column,
+					temporalColumn: profile.timeseries.temporalColumn,
+					trend: profile.timeseries.trend,
+					seasonality: profile.timeseries.seasonality,
+					changePointCount: profile.timeseries.changePoints.length,
+				}
 			: undefined,
-		anomalies: profile.anomalies.map((a) => ({ column: a.column, count: a.indices.length, method: a.method })),
+		anomalies: profile.anomalies.map((a) => ({
+			column: a.column,
+			count: a.indices.length,
+			method: a.method,
+		})),
 		clusters: profile.clusters
-			? { columns: profile.clusters.columns, k: profile.clusters.k, inertia: profile.clusters.inertia }
+			? {
+					columns: profile.clusters.columns,
+					k: profile.clusters.k,
+					inertia: profile.clusters.inertia,
+				}
 			: undefined,
 		aggregates: profile.aggregates,
 		text: profile.text
 			? Object.fromEntries(
-				Object.entries(profile.text).map(([name, t]) => [
-					name,
-					{
-						topKeywords: t.topKeywords.slice(0, 10),
-						topBigrams: t.topBigrams?.slice(0, 5),
-						sentiment: {
-							mean: t.sentiment.mean,
-							positiveRatio: t.sentiment.positiveRatio,
-							negativeRatio: t.sentiment.negativeRatio,
-							neutralRatio: t.sentiment.neutralRatio,
+					Object.entries(profile.text).map(([name, t]) => [
+						name,
+						{
+							topKeywords: t.topKeywords.slice(0, 10),
+							topBigrams: t.topBigrams?.slice(0, 5),
+							sentiment: {
+								mean: t.sentiment.mean,
+								positiveRatio: t.sentiment.positiveRatio,
+								negativeRatio: t.sentiment.negativeRatio,
+								neutralRatio: t.sentiment.neutralRatio,
+							},
+							byGroup: t.byGroup,
 						},
-						byGroup: t.byGroup,
-					},
-				]),
-			)
+					]),
+				)
 			: undefined,
 	};
 	return JSON.stringify(compact);

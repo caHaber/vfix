@@ -1,18 +1,22 @@
 <script lang="ts">
-	type Term = { term: string; score: number; count?: number };
+type Term = { term: string; score: number; count?: number };
 
-	let { rows = [] as Term[], maxFontSize = 48, minFontSize = 12 }: { rows?: Term[]; maxFontSize?: number; minFontSize?: number } = $props();
+let {
+	rows = [] as Term[],
+	maxFontSize = 48,
+	minFontSize = 12,
+}: { rows?: Term[]; maxFontSize?: number; minFontSize?: number } = $props();
 
-	const ranked = $derived.by(() => {
-		if (!rows.length) return [] as Array<Term & { fontSize: number }>;
-		const max = Math.max(...rows.map((r) => r.score));
-		const min = Math.min(...rows.map((r) => r.score));
-		const span = Math.max(1e-9, max - min);
-		return rows.map((r) => ({
-			...r,
-			fontSize: minFontSize + ((r.score - min) / span) * (maxFontSize - minFontSize),
-		}));
-	});
+const ranked = $derived.by(() => {
+	if (!rows.length) return [] as Array<Term & { fontSize: number }>;
+	const max = Math.max(...rows.map((r) => r.score));
+	const min = Math.min(...rows.map((r) => r.score));
+	const span = Math.max(1e-9, max - min);
+	return rows.map((r) => ({
+		...r,
+		fontSize: minFontSize + ((r.score - min) / span) * (maxFontSize - minFontSize),
+	}));
+});
 </script>
 
 <div class="word-cloud">

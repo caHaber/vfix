@@ -6,8 +6,7 @@ export const easeInQuad: EasingFn = (t) => t * t;
 
 export const easeOutQuad: EasingFn = (t) => t * (2 - t);
 
-export const easeInOutQuad: EasingFn = (t) =>
-	t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+export const easeInOutQuad: EasingFn = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
 export const easeOutCubic: EasingFn = (t) => --t * t * t + 1;
 
@@ -18,7 +17,7 @@ export const easeInOutCubic: EasingFn = (t) =>
 export const easeOutBack: EasingFn = (t) => {
 	const c1 = 1.70158;
 	const c3 = c1 + 1;
-	return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+	return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
 };
 
 /** Create a cubic bezier easing function */

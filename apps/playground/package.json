@@ -1,37 +1,37 @@
 {
-  "name": "playground",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@chenglou/pretext": "^0.0.5",
-    "@tailwindcss/vite": "^4.2.4",
-    "@vfir/cartographer": "workspace:*",
-    "@variable-font/core": "workspace:*",
-    "@variable-font/atlas": "workspace:*",
-    "@variable-font/atlas-webgl": "workspace:*",
-    "@vfir/smart-charts": "workspace:*",
-    "@variable-font/svelte": "workspace:*",
-    "bits-ui": "^2.18.0",
-    "clsx": "^2.1.1",
-    "d3-scale": "^4.0.2",
-    "layercake": "^8.0.0",
-    "lucide-svelte": "^1.0.1",
-    "svelte": "^5.0.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwind-variants": "^3.2.2",
-    "tailwindcss": "^4"
-  },
-  "devDependencies": {
-    "@internationalized/date": "^3.12.0",
-    "@lucide/svelte": "^1.9.0",
-    "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "typescript": "^5.0.0",
-    "vite": "^6.0.0"
-  }
+	"name": "playground",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@chenglou/pretext": "^0.0.5",
+		"@tailwindcss/vite": "^4.2.4",
+		"@vfir/cartographer": "workspace:*",
+		"@variable-font/core": "workspace:*",
+		"@variable-font/atlas": "workspace:*",
+		"@variable-font/atlas-webgl": "workspace:*",
+		"@vfir/smart-charts": "workspace:*",
+		"@variable-font/svelte": "workspace:*",
+		"bits-ui": "^2.18.0",
+		"clsx": "^2.1.1",
+		"d3-scale": "^4.0.2",
+		"layercake": "^8.0.0",
+		"lucide-svelte": "^1.0.1",
+		"svelte": "^5.0.0",
+		"tailwind-merge": "^3.5.0",
+		"tailwind-variants": "^3.2.2",
+		"tailwindcss": "^4"
+	},
+	"devDependencies": {
+		"@internationalized/date": "^3.12.0",
+		"@lucide/svelte": "^1.9.0",
+		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"typescript": "^5.0.0",
+		"vite": "^6.0.0"
+	}
 }

@@ -1,5 +1,5 @@
-import { isWasmReady, getWasm } from './wasm-bridge.js';
 import type { Unsubscribe } from './types.js';
+import { getWasm, isWasmReady } from './wasm-bridge.js';
 
 export interface BatchedInterpolatorOptions {
 	/** Number of independent groups (e.g. words). */

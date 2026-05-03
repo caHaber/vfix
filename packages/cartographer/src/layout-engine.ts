@@ -1,4 +1,4 @@
-import { loadWasm, getWasm } from '@variable-font/core';
+import { getWasm, loadWasm } from '@variable-font/core';
 import type {
 	LayoutMode,
 	LayoutResult,
@@ -22,14 +22,27 @@ export interface LayoutInput {
 
 type WasmApi = {
 	force_step(
-		x: Float32Array, y: Float32Array, w: Float32Array, h: Float32Array,
-		importance: Float32Array, vx: Float32Array, vy: Float32Array,
-		center_x: number, center_y: number,
-		repulsion: number, centering: number, damping: number, dt: number,
+		x: Float32Array,
+		y: Float32Array,
+		w: Float32Array,
+		h: Float32Array,
+		importance: Float32Array,
+		vx: Float32Array,
+		vy: Float32Array,
+		center_x: number,
+		center_y: number,
+		repulsion: number,
+		centering: number,
+		damping: number,
+		dt: number,
 	): Float32Array;
 	clamp_to_bounds(
-		x: Float32Array, y: Float32Array, w: Float32Array, h: Float32Array,
-		bounds_w: number, bounds_h: number,
+		x: Float32Array,
+		y: Float32Array,
+		w: Float32Array,
+		h: Float32Array,
+		bounds_w: number,
+		bounds_h: number,
 	): Float32Array;
 };
 
@@ -69,21 +82,40 @@ export class LayoutEngine {
 		if (rec) {
 			const m = mById.get(rec.id);
 			if (m) {
-				positions.push({ ...m, x: cx - m.width / 2, y: cursorY, opacity: 1, text: rec.text, type: rec.type, groupId: rec.groupId });
+				positions.push({
+					...m,
+					x: cx - m.width / 2,
+					y: cursorY,
+					opacity: 1,
+					text: rec.text,
+					type: rec.type,
+					groupId: rec.groupId,
+				});
 				cursorY += m.height + GAP * 2;
 			}
 		}
 
 		// Alternatives row
 		if (alts.length > 0) {
-			const altMeasured = alts.map((b) => mById.get(b.id)).filter((m): m is MeasuredBlock => m !== undefined);
-			const rowWidth = altMeasured.reduce((s, m) => s + m.width, 0) + GAP * (altMeasured.length - 1);
+			const altMeasured = alts
+				.map((b) => mById.get(b.id))
+				.filter((m): m is MeasuredBlock => m !== undefined);
+			const rowWidth =
+				altMeasured.reduce((s, m) => s + m.width, 0) + GAP * (altMeasured.length - 1);
 			let x = cx - rowWidth / 2;
 			let rowH = 0;
 			for (let i = 0; i < altMeasured.length; i++) {
 				const m = altMeasured[i];
 				const b = alts[i];
-				positions.push({ ...m, x, y: cursorY, opacity: 0.95, text: b.text, type: b.type, groupId: b.groupId });
+				positions.push({
+					...m,
+					x,
+					y: cursorY,
+					opacity: 0.95,
+					text: b.text,
+					type: b.type,
+					groupId: b.groupId,
+				});
 				x += m.width + GAP;
 				rowH = Math.max(rowH, m.height);
 			}
@@ -96,13 +128,29 @@ export class LayoutEngine {
 		for (const b of pros) {
 			const m = mById.get(b.id);
 			if (!m) continue;
-			positions.push({ ...m, x: GAP, y: prosY, opacity: 0.85, text: b.text, type: b.type, groupId: b.groupId });
+			positions.push({
+				...m,
+				x: GAP,
+				y: prosY,
+				opacity: 0.85,
+				text: b.text,
+				type: b.type,
+				groupId: b.groupId,
+			});
 			prosY += m.height + GAP;
 		}
 		for (const b of cons) {
 			const m = mById.get(b.id);
 			if (!m) continue;
-			positions.push({ ...m, x: bounds.width - m.width - GAP, y: consY, opacity: 0.85, text: b.text, type: b.type, groupId: b.groupId });
+			positions.push({
+				...m,
+				x: bounds.width - m.width - GAP,
+				y: consY,
+				opacity: 0.85,
+				text: b.text,
+				type: b.type,
+				groupId: b.groupId,
+			});
 			consY += m.height + GAP;
 		}
 		cursorY = Math.max(prosY, consY) + GAP;
@@ -111,7 +159,15 @@ export class LayoutEngine {
 		for (const b of caveats) {
 			const m = mById.get(b.id);
 			if (!m) continue;
-			positions.push({ ...m, x: cx - m.width / 2, y: cursorY, opacity: 0.65, text: b.text, type: b.type, groupId: b.groupId });
+			positions.push({
+				...m,
+				x: cx - m.width / 2,
+				y: cursorY,
+				opacity: 0.65,
+				text: b.text,
+				type: b.type,
+				groupId: b.groupId,
+			});
 			cursorY += m.height + GAP;
 		}
 
@@ -176,7 +232,21 @@ export class LayoutEngine {
 		const api = getWasm() as unknown as WasmApi;
 
 		for (let iter = 0; iter < FORCE_ITERATIONS; iter++) {
-			const next = api.force_step(x, y, w, h, imp, vx, vy, cx, cy, REPULSION, CENTERING, DAMPING, DT);
+			const next = api.force_step(
+				x,
+				y,
+				w,
+				h,
+				imp,
+				vx,
+				vy,
+				cx,
+				cy,
+				REPULSION,
+				CENTERING,
+				DAMPING,
+				DT,
+			);
 			for (let i = 0; i < n; i++) {
 				x[i] = next[i * 4 + 0];
 				y[i] = next[i * 4 + 1];
@@ -191,7 +261,15 @@ export class LayoutEngine {
 		}
 
 		const positions: PositionedBlock[] = structure.blocks.map((b, i) => {
-			const m = mById.get(b.id) ?? { id: b.id, width: 200, height: 40, fontSize: 16, fontWeight: 400, lineHeight: 22, lineCount: 1 };
+			const m = mById.get(b.id) ?? {
+				id: b.id,
+				width: 200,
+				height: 40,
+				fontSize: 16,
+				fontWeight: 400,
+				lineHeight: 22,
+				lineCount: 1,
+			};
 			return {
 				...m,
 				x: x[i] - m.width / 2,
@@ -206,4 +284,3 @@ export class LayoutEngine {
 		return { positions, bounds, mode: 'exploration', groups: structure.groups };
 	}
 }
-

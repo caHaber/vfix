@@ -21,7 +21,10 @@ export interface EnhanceOptions {
 	llm?: LLMConfig;
 }
 
-export async function enhance(profile: StatisticalProfile, options: EnhanceOptions = {}): Promise<EnhancementSpec> {
+export async function enhance(
+	profile: StatisticalProfile,
+	options: EnhanceOptions = {},
+): Promise<EnhancementSpec> {
 	const fallback = heuristicSpec(profile, options.question);
 	if (!options.llm || options.llm.provider === 'mock') {
 		return fallback;
@@ -62,7 +65,16 @@ function isSpec(value: unknown): value is EnhancementSpec {
 	if (!value || typeof value !== 'object') return false;
 	const v = value as Record<string, unknown>;
 	if (typeof v.chartType !== 'string') return false;
-	const allowed = ['line', 'bar', 'scatter', 'area', 'histogram', 'heatmap', 'wordCloud', 'sentimentBar'];
+	const allowed = [
+		'line',
+		'bar',
+		'scatter',
+		'area',
+		'histogram',
+		'heatmap',
+		'wordCloud',
+		'sentimentBar',
+	];
 	if (!allowed.includes(v.chartType)) return false;
 	if (!v.encoding || typeof v.encoding !== 'object') return false;
 	const enc = v.encoding as Record<string, unknown>;

@@ -20,7 +20,11 @@ export function specToRows(
 	if (spec.chartType === 'wordCloud') {
 		const textName = profile.text ? Object.keys(profile.text)[0] : null;
 		const ti = textName ? profile.text![textName] : null;
-		const rows = (ti?.topKeywords ?? []).map((k) => ({ term: k.term, score: k.score, count: k.count }));
+		const rows = (ti?.topKeywords ?? []).map((k) => ({
+			term: k.term,
+			score: k.score,
+			count: k.count,
+		}));
 		return { rows, xKey: 'term', yKey: 'score', xType: 'categorical' };
 	}
 
@@ -28,7 +32,11 @@ export function specToRows(
 		const textName = profile.text ? Object.keys(profile.text)[0] : null;
 		const ti = textName ? profile.text![textName] : null;
 		const rows = ti?.byGroup
-			? ti.byGroup.rows.map((r) => ({ group: r.group, sentiment: r.sentiment, topKeyword: r.topKeyword }))
+			? ti.byGroup.rows.map((r) => ({
+					group: r.group,
+					sentiment: r.sentiment,
+					topKeyword: r.topKeyword,
+				}))
 			: ti
 				? sentimentBucketFromInsights(ti)
 				: [];
@@ -49,7 +57,9 @@ export function specToRows(
 	}
 
 	if (spec.chartType === 'bar' && profile.aggregates) {
-		const agg = profile.aggregates.find((a) => a.groupColumn === spec.encoding.x && a.valueColumn === spec.encoding.y);
+		const agg = profile.aggregates.find(
+			(a) => a.groupColumn === spec.encoding.x && a.valueColumn === spec.encoding.y,
+		);
 		if (agg) {
 			return {
 				rows: agg.rows.map((r) => ({ [spec.encoding.x]: r.group, [spec.encoding.y]: r.value })),
@@ -65,7 +75,11 @@ export function specToRows(
 	const n = adapted.dataset.rowCount;
 	const rows: Array<Record<string, unknown>> = [];
 	const xType: RenderRows['xType'] =
-		xCol?.type === 'temporal' ? 'temporal' : xCol?.type === 'categorical' ? 'categorical' : 'numeric';
+		xCol?.type === 'temporal'
+			? 'temporal'
+			: xCol?.type === 'categorical'
+				? 'categorical'
+				: 'numeric';
 
 	for (let i = 0; i < n; i++) {
 		let xv: unknown;

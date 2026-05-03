@@ -1,5 +1,4 @@
 import { linear } from './easing.js';
-import { isWasmReady, getWasm } from './wasm-bridge.js';
 import type {
 	AxisSnapshot,
 	AxisState,
@@ -8,6 +7,7 @@ import type {
 	SubscriberFn,
 	Unsubscribe,
 } from './types.js';
+import { getWasm, isWasmReady } from './wasm-bridge.js';
 
 export class Interpolator {
 	private axes: Map<string, AxisState> = new Map();
