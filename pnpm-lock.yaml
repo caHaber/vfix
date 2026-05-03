@@ -33,6 +33,12 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.2.4
         version: 4.2.4(vite@6.4.2(jiti@2.6.1)(lightningcss@1.32.0))
+      '@variable-font/atlas':
+        specifier: workspace:*
+        version: link:../../packages/variable-font-atlas
+      '@variable-font/atlas-webgl':
+        specifier: workspace:*
+        version: link:../../packages/variable-font-atlas-webgl
       '@variable-font/core':
         specifier: workspace:*
         version: link:../../packages/variable-font-core
@@ -136,6 +142,25 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  packages/variable-font-atlas:
+    dependencies:
+      '@vfir/wasm':
+        specifier: workspace:*
+        version: link:../wasm
+    devDependencies:
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.10)(typescript@6.0.3)
+
+  packages/variable-font-atlas-webgl:
+    devDependencies:
+      '@variable-font/atlas':
+        specifier: workspace:*
+        version: link:../variable-font-atlas
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.10)(typescript@6.0.3)
 
   packages/variable-font-core:
     dependencies:
