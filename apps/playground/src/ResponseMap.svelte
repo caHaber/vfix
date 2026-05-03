@@ -5,12 +5,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { sendPromptToStudio } from '$lib/prompt-bus.svelte';
-
-	interface Props {
-		onSent?: () => void;
-	}
-	let { onSent }: Props = $props();
 
 	const LS_KEY = 'cartographer-api-key';
 
@@ -420,12 +414,6 @@ Context: the service handles order fulfillment events and downstream reporting j
 		setTimeout(() => (copyFeedback = ''), 1200);
 	}
 
-	function sendToStudio() {
-		if (!previewText) return;
-		sendPromptToStudio(previewText);
-		onSent?.();
-	}
-
 	function typeToClasses(type: string): string {
 		switch (type) {
 			case 'recommendation':
@@ -488,9 +476,6 @@ Context: the service handles order fulfillment events and downstream reporting j
 				</Button>
 				<Button variant="outline" size="sm" onclick={copyAsPrompt} disabled={status === 'streaming'}>
 					{copyFeedback || 'Copy as prompt'}
-				</Button>
-				<Button size="sm" onclick={sendToStudio} disabled={status === 'streaming'}>
-					Send to Prompt Studio
 				</Button>
 			</span>
 		</div>

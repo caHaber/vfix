@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.5",
-    "@prompt-studio/core": "workspace:*",
     "@tailwindcss/vite": "^4.2.4",
     "@vfir/cartographer": "workspace:*",
     "@variable-font/core": "workspace:*",

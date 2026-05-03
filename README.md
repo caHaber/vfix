@@ -1,6 +1,6 @@
 # vfir
 
-**Variable Font Interpolation Renderer.** A framework-agnostic core for real-time variable font axis interpolation (Pretext for layout, optional Rust/WASM for math), plus a Svelte 5 adapter and a set of analysis tools for LLM developers (`@prompt-studio/core`, `@vfir/cartographer`, `@vfir/smart-charts` + `@vfir/wasm-stats`).
+**Variable Font Interpolation Renderer.** A framework-agnostic core for real-time variable font axis interpolation (Pretext for layout, optional Rust/WASM for math), plus a Svelte 5 adapter and a set of analysis tools for LLM developers (`@vfir/cartographer`, `@vfir/smart-charts` + `@vfir/wasm-stats`).
 
 ## Repo layout
 
@@ -9,7 +9,6 @@ packages/variable-font-core/    # @variable-font/core   — Interpolator, Batche
 packages/variable-font-svelte/  # @variable-font/svelte — Svelte 5 adapter (runes, actions, components)
 packages/wasm/                  # @vfir/wasm            — Rust WASM module (font/layout/cartographer math + batched spring + radial bloom kernel)
 packages/wasm-stats/            # @vfir/wasm-stats      — Rust WASM module (statistical engine + text aggregations)
-packages/prompt-studio/         # @prompt-studio/core   — Tokenization, analysis, diff
 packages/cartographer/          # @vfir/cartographer    — Streaming LLM response → spatial map / editor
 packages/smart-charts/          # @vfir/smart-charts    — WASM stats + LLM enhancement + Layercake renderer
 apps/playground/                # Vite + Svelte 5 demo app (the tabs below)
@@ -44,7 +43,7 @@ The `@vfir/wasm` Rust module exports kernels that core uses when available: `int
 
 ## Playground tabs
 
-The playground (`apps/playground`) is the main place to see everything in action. It has five tabs:
+The playground (`apps/playground`) is the main place to see everything in action. It has these tabs:
 
 ### Kinetic
 
@@ -60,21 +59,13 @@ WASM-powered chart pipeline with built-in statistical intelligence and optional 
 
 ### Response Map
 
-A "cartographer" view for streaming LLM responses, powered by `@vfir/cartographer`. Stream a response from the API (or paste one), and the model's output is parsed into content blocks (claims, alternatives, pros/cons, caveats, context) and laid out spatially on a pannable/zoomable canvas instead of as a linear scroll. You can hide blocks, select a subset, and "send to Prompt Studio" to re-tokenize the trimmed prompt — a feedback loop between response shape and prompt shape.
-
-### Prompt Studio
-
-Token-level analysis for LLM prompts, powered by `@prompt-studio/core`.
-
-- **Analyze** — paste a prompt, see token count, character/byte stats, model cost estimates, and token boundary highlighting. Pluggable tokenizers (`cl100k_base`, `o200k_base`) and model pricing for the common GPT/Claude families.
-- **Diff** — paste two prompt variants and see a token-level diff: which tokens were added, removed, or kept, and how the cost changes.
+A "cartographer" view for streaming LLM responses, powered by `@vfir/cartographer`. Stream a response from the API (or paste one), and the model's output is parsed into content blocks (claims, alternatives, pros/cons, caveats, context) and laid out spatially on a pannable/zoomable canvas instead of as a linear scroll. You can hide blocks, select a subset, and copy the trimmed result back as a prompt.
 
 ## Architecture principles
 
 - **Pretext for layout** — all text measurement and line-breaking goes through `@chenglou/pretext`, wrapped in core's `MetricsProvider`. Adapters and apps never call Pretext directly.
 - **WASM with JS fallback** — core checks `isWasmReady()` at runtime. If WASM is loaded, batched math (`interpolate_batch`, `compute_radial_targets`) runs in Rust; otherwise an identical-shape JS fallback runs. Apps work without WASM.
 - **Framework-agnostic core** — `@variable-font/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, etc.
-- **Pluggable tokenizers** — `TokenizerRegistry` supports lazy-loaded tokenizers. New tokenizer families are additive.
 - **Compositor-friendly DOM** — animated text avoids `will-change` and per-element `transform` (which lift each element into its own GPU layer that font-variation-settings can't actually use). Use `left/top` for absolute placement, `contain: paint` to bound paint regions, and per-line `content-visibility: auto` so off-screen lines skip the rendering pipeline.
 
 ## Conventions
