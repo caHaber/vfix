@@ -7,7 +7,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import KineticText from './KineticText.svelte';
 	import KineticCanvas from './KineticCanvas.svelte';
-	import PromptStudio from './PromptStudio.svelte';
 	import ResponseMap from './ResponseMap.svelte';
 	import SmartCharts from './SmartCharts.svelte';
 
@@ -16,8 +15,7 @@
 		| 'kinetic-gpu'
 		| 'sliders'
 		| 'smart-charts'
-		| 'response-map'
-		| 'prompt-studio';
+		| 'response-map';
 	let activeTab = $state<Tab>('kinetic-gpu');
 
 	const font = variableFont({
@@ -78,7 +76,6 @@
 			<Tabs.Trigger value="sliders">Variable Fonts</Tabs.Trigger>
 			<Tabs.Trigger value="smart-charts">Smart Charts</Tabs.Trigger>
 			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
-			<Tabs.Trigger value="prompt-studio">Prompt Studio</Tabs.Trigger>
 		</Tabs.List>
 
 		<Tabs.Content value="sliders">
@@ -129,12 +126,8 @@
 			<KineticText />
 		</Tabs.Content>
 
-		<Tabs.Content value="prompt-studio">
-			<PromptStudio />
-		</Tabs.Content>
-
 		<Tabs.Content value="response-map">
-			<ResponseMap onSent={() => (activeTab = 'prompt-studio')} />
+			<ResponseMap />
 		</Tabs.Content>
 
 		<Tabs.Content value="smart-charts">

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**vfir** — Variable Font Interpolation Renderer. A framework-agnostic core library + Svelte 5 adapter for real-time variable font axis interpolation. Includes a prompt analysis tool (Prompt Studio) for LLM developers.
+**vfir** — Variable Font Interpolation Renderer. A framework-agnostic core library + Svelte 5 adapter for real-time variable font axis interpolation.
 
 ## Monorepo Structure
 
@@ -10,8 +10,7 @@
 packages/variable-font-core/    # @variable-font/core   — Interpolator, MetricsProvider, Renderer, easing, WASM bridge
 packages/variable-font-svelte/  # @variable-font/svelte — Svelte 5 adapter (runes, actions, components)
 packages/wasm/                  # @vfir/wasm            — Rust WASM module (layout, interpolation math)
-packages/prompt-studio/         # @prompt-studio/core   — Tokenization, analysis, diff engine
-apps/playground/                # Vite + Svelte playground (Sliders, Kinetic, Prompt Studio tabs)
+apps/playground/                # Vite + Svelte playground (Sliders, Kinetic, Response Map tabs)
 examples/                       # Standalone examples
 ```
 
@@ -27,7 +26,7 @@ examples/                       # Standalone examples
 - **Build:** tsup (libraries), svelte-package (Svelte adapter), Vite (playground), wasm-pack (Rust)
 - **Lint/Format:** Biome
 - **Test:** Vitest
-- **Key dependencies:** `@chenglou/pretext` (text measurement/layout), `js-tiktoken` (BPE tokenization)
+- **Key dependencies:** `@chenglou/pretext` (text measurement/layout)
 
 ## Common Commands
 
@@ -45,7 +44,6 @@ pnpm build:wasm       # Build WASM module (requires wasm-pack + Rust)
 - **Pretext for layout**: All text measurement and line-breaking goes through `@chenglou/pretext`, wrapped in core's `MetricsProvider`. Never call Pretext directly from adapters or apps.
 - **WASM with JS fallback**: Core checks `isWasmReady()` at runtime. If WASM is loaded, use it for interpolation math. Otherwise fall back to JS. Apps should work without WASM.
 - **Framework-agnostic core**: `@variable-font/core` has no DOM or framework dependencies. Adapters wrap it for Svelte, etc.
-- **Pluggable tokenizers**: `TokenizerRegistry` supports lazy-loaded tokenizers. New tokenizer families are additive.
 
 ## Code Conventions
 
