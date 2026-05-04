@@ -1,14 +1,15 @@
-export type { AnnotationEvent, AnnotatorOptions } from './annotator.js';
-export { Annotator, normalizeGroups, parseJsonResponse } from './annotator.js';
-export type { LayoutInput } from './layout-engine.js';
-export { LayoutEngine } from './layout-engine.js';
 export type { MeasurerOptions } from './measurer.js';
 export { Measurer } from './measurer.js';
-export { detectMode } from './mode-detector.js';
-export type { SerializeOptions } from './serialize.js';
-export { groupsFromStructure, serializeToPrompt } from './serialize.js';
-export type { SessionOptions } from './session.js';
-export { Session } from './session.js';
-export type { StreamingLayoutOptions } from './streaming-layout.js';
-export { StreamingLayout } from './streaming-layout.js';
+export type { PlanAnnotationEvent, PlanAnnotatorOptions } from './plan-annotator.js';
+export { PlanAnnotator } from './plan-annotator.js';
+export type { PlanBlockType, PlanSerializeOptions } from './plan-serialize.js';
+export { serializeToPlan } from './plan-serialize.js';
+export type {
+	BlockRect,
+	GroupRectOut,
+	RectLayoutMode,
+	RectLayoutOptions,
+	RectLayoutSnapshot,
+} from './rect-layout.js';
+export { RectLayout } from './rect-layout.js';
 export type * from './types.js';

@@ -36,29 +36,21 @@ declare module '@vfir/wasm' {
 		y2: number,
 		t: number,
 	): number;
-	// Cartographer layout primitives
-	export function force_step(
+	// Plan-refinement layout primitive
+	export function rect_step(
 		x: Float32Array,
 		y: Float32Array,
 		w: Float32Array,
 		h: Float32Array,
-		importance: Float32Array,
 		vx: Float32Array,
 		vy: Float32Array,
-		center_x: number,
-		center_y: number,
-		repulsion: number,
-		centering: number,
-		damping: number,
-		dt: number,
-	): Float32Array;
-	export function clamp_to_bounds(
-		x: Float32Array,
-		y: Float32Array,
-		w: Float32Array,
-		h: Float32Array,
+		bounds_x: number,
+		bounds_y: number,
 		bounds_w: number,
 		bounds_h: number,
+		repulsion: number,
+		damping: number,
+		dt: number,
 	): Float32Array;
 	export default function init(): Promise<void>;
 }

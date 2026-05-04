@@ -108,65 +108,84 @@ export function cubic_bezier_interpolate(
 	return t;
 }
 
-/** JS fallback for the WASM force_step. Signature matches the Rust export. */
-export function force_step(
+/** JS fallback for the WASM rect_step (plan-refinement layout step). */
+export function rect_step(
 	x: Float32Array,
 	y: Float32Array,
 	w: Float32Array,
 	h: Float32Array,
-	importance: Float32Array,
 	vx: Float32Array,
 	vy: Float32Array,
-	center_x: number,
-	center_y: number,
+	bounds_x: number,
+	bounds_y: number,
+	bounds_w: number,
+	bounds_h: number,
 	repulsion: number,
-	centering: number,
 	damping: number,
 	dt: number,
 ): Float32Array {
 	const n = x.length;
 	const out = new Float32Array(n * 4);
+	const GAP = 12;
 	for (let i = 0; i < n; i++) {
-		let fx = (center_x - x[i]) * centering * importance[i];
-		let fy = (center_y - y[i]) * centering * importance[i];
+		let fx = 0;
+		let fy = 0;
 		for (let j = 0; j < n; j++) {
 			if (i === j) continue;
 			const dx = x[i] - x[j];
 			const dy = y[i] - y[j];
-			const ox = (w[i] + w[j]) * 0.5 + 8 - Math.abs(dx);
-			const oy = (h[i] + h[j]) * 0.5 + 8 - Math.abs(dy);
+			const ox = (w[i] + w[j]) * 0.5 + GAP - Math.abs(dx);
+			const oy = (h[i] + h[j]) * 0.5 + GAP - Math.abs(dy);
 			if (ox > 0 && oy > 0) {
-				const push = Math.min(ox, oy);
-				const dist = Math.sqrt(dx * dx + dy * dy + 1);
-				fx += (dx / dist) * repulsion * push * 0.001;
-				fy += (dy / dist) * repulsion * push * 0.001;
+				if (ox < oy) {
+					const dir = dx >= 0 ? 1 : -1;
+					fx += dir * ox * repulsion * 0.001;
+				} else {
+					const dir = dy >= 0 ? 1 : -1;
+					fy += dir * oy * repulsion * 0.001;
+				}
 			}
 		}
-		const nvx = (vx[i] + fx * dt) * damping;
-		const nvy = (vy[i] + fy * dt) * damping;
-		out[i * 4 + 0] = x[i] + nvx * dt;
-		out[i * 4 + 1] = y[i] + nvy * dt;
-		out[i * 4 + 2] = nvx;
-		out[i * 4 + 3] = nvy;
-	}
-	return out;
-}
-
-export function clamp_to_bounds(
-	x: Float32Array,
-	y: Float32Array,
-	w: Float32Array,
-	h: Float32Array,
-	bounds_w: number,
-	bounds_h: number,
-): Float32Array {
-	const n = x.length;
-	const out = new Float32Array(n * 2);
-	for (let i = 0; i < n; i++) {
+		let nvx = (vx[i] + fx * dt) * damping;
+		let nvy = (vy[i] + fy * dt) * damping;
+		const cx = x[i] + nvx * dt;
+		const cy = y[i] + nvy * dt;
 		const hw = w[i] * 0.5;
 		const hh = h[i] * 0.5;
-		out[i * 2 + 0] = Math.max(hw, Math.min(bounds_w - hw, x[i]));
-		out[i * 2 + 1] = Math.max(hh, Math.min(bounds_h - hh, y[i]));
+		const minX = bounds_x + hw;
+		const maxX = bounds_x + bounds_w - hw;
+		const minY = bounds_y + hh;
+		const maxY = bounds_y + bounds_h - hh;
+		let nx: number;
+		let ny: number;
+		if (minX <= maxX) {
+			if (cx < minX) {
+				nx = minX;
+				if (nvx < 0) nvx = 0;
+			} else if (cx > maxX) {
+				nx = maxX;
+				if (nvx > 0) nvx = 0;
+			} else nx = cx;
+		} else {
+			nx = (bounds_x + bounds_w) * 0.5;
+			nvx = 0;
+		}
+		if (minY <= maxY) {
+			if (cy < minY) {
+				ny = minY;
+				if (nvy < 0) nvy = 0;
+			} else if (cy > maxY) {
+				ny = maxY;
+				if (nvy > 0) nvy = 0;
+			} else ny = cy;
+		} else {
+			ny = (bounds_y + bounds_h) * 0.5;
+			nvy = 0;
+		}
+		out[i * 4 + 0] = nx;
+		out[i * 4 + 1] = ny;
+		out[i * 4 + 2] = nvx;
+		out[i * 4 + 3] = nvy;
 	}
 	return out;
 }

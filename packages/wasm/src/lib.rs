@@ -331,28 +331,29 @@ fn bezier_val(t: f32, p1: f32, p2: f32) -> f32 {
     3.0 * (1.0 - t).powi(2) * t * p1 + 3.0 * (1.0 - t) * t.powi(2) * p2 + t.powi(3)
 }
 
-// ----- New: cartographer layout primitives -----
+// ----- Plan-refinement layout primitive -----
 
-/// One step of a force-directed simulation on N rectangular blocks.
+/// Plan-refinement layout step: pairwise AABB rectangle separation + bounds
+/// clamp, no group attraction or centering. Used by both the overview sim
+/// (groups as rigid bodies in canvas bounds) and the drill sim (children in
+/// a parent's content rect).
 ///
-/// Inputs (all length N):
-///   x, y              current center positions
+/// Inputs:
+///   x, y              center coordinates (mutable on output)
 ///   w, h              block dimensions
-///   importance        0-1; higher = stronger pull to center
 ///   vx, vy            current velocities
-///   center_x, center_y container center
-///   repulsion         pairwise repulsion strength (e.g. 4000.0)
-///   centering         importance-weighted pull strength (e.g. 0.02)
+///   bounds_x/y/w/h    rectangular bounds the centers' AABBs must stay inside
+///   repulsion         pairwise repulsion strength (e.g. 800.0)
 ///   damping           velocity damping per step (e.g. 0.85)
 ///   dt                time step (e.g. 1.0)
 ///
 /// Returns flat Vec<f32> of length 4N: [x0, y0, vx0, vy0, x1, y1, vx1, vy1, ...]
 #[wasm_bindgen]
-pub fn force_step(
+pub fn rect_step(
     x: &[f32], y: &[f32], w: &[f32], h: &[f32],
-    importance: &[f32], vx: &[f32], vy: &[f32],
-    center_x: f32, center_y: f32,
-    repulsion: f32, centering: f32, damping: f32, dt: f32,
+    vx: &[f32], vy: &[f32],
+    bounds_x: f32, bounds_y: f32, bounds_w: f32, bounds_h: f32,
+    repulsion: f32, damping: f32, dt: f32,
 ) -> Vec<f32> {
     let n = x.len();
     let mut nx = vec![0f32; n];
@@ -360,28 +361,66 @@ pub fn force_step(
     let mut nvx = vec![0f32; n];
     let mut nvy = vec![0f32; n];
 
+    // Margin between rectangles when at rest. Keeps a visible gap so adjacent
+    // groups/blocks don't touch.
+    const GAP: f32 = 12.0;
+
     for i in 0..n {
-        let mut fx = (center_x - x[i]) * centering * importance[i];
-        let mut fy = (center_y - y[i]) * centering * importance[i];
+        let mut fx = 0f32;
+        let mut fy = 0f32;
 
         for j in 0..n {
             if i == j { continue; }
             let dx = x[i] - x[j];
             let dy = y[i] - y[j];
-            let overlap_x = (w[i] + w[j]) * 0.5 + 8.0 - dx.abs();
-            let overlap_y = (h[i] + h[j]) * 0.5 + 8.0 - dy.abs();
+            let overlap_x = (w[i] + w[j]) * 0.5 + GAP - dx.abs();
+            let overlap_y = (h[i] + h[j]) * 0.5 + GAP - dy.abs();
             if overlap_x > 0.0 && overlap_y > 0.0 {
-                let push = overlap_x.min(overlap_y);
-                let dist2 = dx * dx + dy * dy + 1.0;
-                fx += (dx / dist2.sqrt()) * repulsion * push * 0.001;
-                fy += (dy / dist2.sqrt()) * repulsion * push * 0.001;
+                // Push along the axis with the smaller overlap (minimum
+                // translation vector) — separates rects cleanly along one
+                // axis instead of diagonal sliding.
+                if overlap_x < overlap_y {
+                    let dir = if dx >= 0.0 { 1.0 } else { -1.0 };
+                    fx += dir * overlap_x * repulsion * 0.001;
+                } else {
+                    let dir = if dy >= 0.0 { 1.0 } else { -1.0 };
+                    fy += dir * overlap_y * repulsion * 0.001;
+                }
             }
         }
 
         nvx[i] = (vx[i] + fx * dt) * damping;
         nvy[i] = (vy[i] + fy * dt) * damping;
-        nx[i] = x[i] + nvx[i] * dt;
-        ny[i] = y[i] + nvy[i] * dt;
+        let cx = x[i] + nvx[i] * dt;
+        let cy = y[i] + nvy[i] * dt;
+
+        // Bounds clamp: keep the rect's AABB inside the bounds rect.
+        // Velocity is preserved (just clamped to non-outward) so the rect can
+        // still slide along a wall when peers push it sideways. Killing
+        // velocity here would freeze rects against the wall before pairwise
+        // separation finishes.
+        let hw = w[i] * 0.5;
+        let hh = h[i] * 0.5;
+        let min_x = bounds_x + hw;
+        let max_x = bounds_x + bounds_w - hw;
+        let min_y = bounds_y + hh;
+        let max_y = bounds_y + bounds_h - hh;
+        if min_x <= max_x {
+            if cx < min_x { nx[i] = min_x; if nvx[i] < 0.0 { nvx[i] = 0.0; } }
+            else if cx > max_x { nx[i] = max_x; if nvx[i] > 0.0 { nvx[i] = 0.0; } }
+            else { nx[i] = cx; }
+        } else {
+            nx[i] = (bounds_x + bounds_w) * 0.5;
+            nvx[i] = 0.0;
+        }
+        if min_y <= max_y {
+            if cy < min_y { ny[i] = min_y; if nvy[i] < 0.0 { nvy[i] = 0.0; } }
+            else if cy > max_y { ny[i] = max_y; if nvy[i] > 0.0 { nvy[i] = 0.0; } }
+            else { ny[i] = cy; }
+        } else {
+            ny[i] = (bounds_y + bounds_h) * 0.5;
+            nvy[i] = 0.0;
+        }
     }
 
     let mut out = Vec::with_capacity(n * 4);
@@ -390,26 +429,6 @@ pub fn force_step(
         out.push(ny[i]);
         out.push(nvx[i]);
         out.push(nvy[i]);
-    }
-    out
-}
-
-/// Clamp each block center so its AABB fits inside [0, bounds_w] x [0, bounds_h].
-/// Returns flat [x0, y0, x1, y1, ...] of length 2N.
-#[wasm_bindgen]
-pub fn clamp_to_bounds(
-    x: &[f32], y: &[f32], w: &[f32], h: &[f32],
-    bounds_w: f32, bounds_h: f32,
-) -> Vec<f32> {
-    let n = x.len();
-    let mut out = Vec::with_capacity(n * 2);
-    for i in 0..n {
-        let hw = w[i] * 0.5;
-        let hh = h[i] * 0.5;
-        let cx = x[i].max(hw).min(bounds_w - hw);
-        let cy = y[i].max(hh).min(bounds_h - hh);
-        out.push(cx);
-        out.push(cy);
     }
     out
 }
