@@ -7,10 +7,10 @@ import { Slider } from '$lib/components/ui/slider';
 import * as Tabs from '$lib/components/ui/tabs';
 import KineticCanvas from './KineticCanvas.svelte';
 import KineticText from './KineticText.svelte';
-import ResponseMap from './ResponseMap.svelte';
+import PlanRefinement from './PlanRefinement.svelte';
 import SmartCharts from './SmartCharts.svelte';
 
-type Tab = 'kinetic' | 'kinetic-gpu' | 'sliders' | 'smart-charts' | 'response-map';
+type Tab = 'kinetic' | 'kinetic-gpu' | 'sliders' | 'smart-charts' | 'plan-refinement';
 let activeTab = $state<Tab>('kinetic-gpu');
 
 const font = variableFont({
@@ -70,7 +70,7 @@ function handleSliderChange(tag: string, values: number[]) {
 			<Tabs.Trigger value="kinetic">Kinetic (DOM)</Tabs.Trigger>
 			<Tabs.Trigger value="sliders">Variable Fonts</Tabs.Trigger>
 			<Tabs.Trigger value="smart-charts">Smart Charts</Tabs.Trigger>
-			<Tabs.Trigger value="response-map">Response Map</Tabs.Trigger>
+			<Tabs.Trigger value="plan-refinement">Plan Refinement</Tabs.Trigger>
 		</Tabs.List>
 
 		<Tabs.Content value="sliders">
@@ -121,8 +121,8 @@ function handleSliderChange(tag: string, values: number[]) {
 			<KineticText />
 		</Tabs.Content>
 
-		<Tabs.Content value="response-map">
-			<ResponseMap />
+		<Tabs.Content value="plan-refinement">
+			<PlanRefinement />
 		</Tabs.Content>
 
 		<Tabs.Content value="smart-charts">

@@ -1,60 +1,45 @@
-/** Content block classification */
+/** Content block classification — plan-refinement ontology. */
 export type BlockType =
-	| 'recommendation'
-	| 'alternative'
-	| 'code'
-	| 'explanation'
-	| 'caveat'
-	| 'pro'
-	| 'con'
-	| 'step'
-	| 'context'
-	| 'question';
+	| 'phase'
+	| 'task'
+	| 'rationale'
+	| 'risk'
+	| 'open-question'
+	| 'dependency'
+	| 'success-criterion'
+	| 'constraint'
+	| 'reference';
 
-/** Layout modes supported in v1 */
-export type LayoutMode = 'decision' | 'exploration';
-
-/** A single content block extracted from an LLM response */
+/** A single content block in a plan. */
 export interface ContentBlock {
 	id: string;
 	text: string;
 	type: BlockType;
-	/** 0–1; higher means bigger/more central */
+	/** 0–1; higher = larger/leads its phase. */
 	importance: number;
-	/** Language tag for code blocks, e.g. 'typescript', 'python' */
-	language?: string;
-	/** Optional grouping id — blocks sharing a groupId cluster */
+	/** Optional grouping id — blocks sharing a groupId belong to one phase. */
 	groupId?: string;
+	/** User-facing scale multiplier (default 1). */
+	scale?: number;
+	/** Pinned blocks have their position frozen by the layout sim. */
+	pinned?: boolean;
+	/** Provenance — annotated by the original pass, refined by Refiner, or manual. */
+	source?: 'annotated' | 'refined' | 'manual';
+	/** Block IDs that produced this block (for cross-plan refinement traces). */
+	refinedFrom?: string[];
 }
 
-/** Semantic relationship between two blocks */
-export interface BlockRelationship {
-	from: string;
-	to: string;
-	type: 'qualifies' | 'supports' | 'contradicts' | 'implements' | 'alternative_to';
-}
-
-/** Optional summary for decision-mode responses */
-export interface DecisionSummary {
-	question: string;
-	recommendation: string;
-	confidence: 'strong' | 'moderate' | 'weak';
-	conditions: string[];
-}
-
-/** A named cluster of blocks that share a groupId */
+/** A named phase that clusters blocks. */
 export interface Group {
 	id: string;
 	label: string;
 	summary?: string;
-}
-
-/** What the annotator returns */
-export interface ResponseStructure {
-	blocks: ContentBlock[];
-	relationships: BlockRelationship[];
-	decision?: DecisionSummary;
-	groups?: Group[];
+	/** Optional aggregate importance; defaults to max child importance. */
+	importance?: number;
+	/** Cached child positions (group-local coords) restored when re-drilling. */
+	childPositions?: Record<string, { x: number; y: number }>;
+	/** Overview render flag — when true, drilling is disabled. */
+	collapsed?: boolean;
 }
 
 /** One block after measurement */
@@ -74,32 +59,3 @@ export interface MeasuredBlock {
 	lineCount: number;
 }
 
-/** Positioned block ready for rendering */
-export interface PositionedBlock extends MeasuredBlock {
-	/** Top-left x of the circle bounding box */
-	x: number;
-	/** Top-left y of the circle bounding box */
-	y: number;
-	/** Diameter of the rendered circle (streaming/circle layouts only) */
-	diameter?: number;
-	opacity: number;
-	text: string;
-	type: BlockType;
-	groupId?: string;
-}
-
-/** Final layout output */
-export interface LayoutResult {
-	positions: PositionedBlock[];
-	bounds: { width: number; height: number };
-	mode: LayoutMode;
-	groups?: Group[];
-}
-
-/** What the playground passes in */
-export interface MapOptions {
-	width: number;
-	height: number;
-	/** Force a specific mode; otherwise ModeDetector picks */
-	mode?: LayoutMode;
-}
